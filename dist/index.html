@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#071c2c">
+  <title>The Awakening</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main id="app">
+    <header><p class="eyebrow">ATLANTIS · SEASON ONE</p><h1>The Awakening</h1><p class="subtitle">A city hides its knowledge in plain sight.</p></header>
+    <section class="panel" aria-labelledby="scene-title">
+      <div class="chapter" id="chapter"></div><h2 id="scene-title"></h2>
+      <div class="art" aria-hidden="true"><span class="sun"></span><span class="temple"></span><span class="water"></span></div>
+      <div id="story"></div>
+      <div id="interaction"></div>
+      <div id="records"></div>
+      <p id="notice" role="status" aria-live="polite"></p>
+      <p id="storage-status" role="status" aria-live="polite"></p>
+    </section>
+    <footer><button type="button" id="sound">Sound: off</button> <button type="button" id="restart">Start over</button><p>Progress is saved on this device when storage is available. Sound is optional; all clues are visible.</p></footer>
+  </main>
+  <script type="module" src="game.mjs"></script>
+</body>
+</html>

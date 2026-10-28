@@ -1,0 +1,8 @@
+import assert from 'node:assert/strict';
+class Node {constructor(tag){this.tag=tag;this.children=[];this.attributes={};this.style={};this.listeners={};this.textContent='';}append(...xs){this.children.push(...xs)}setAttribute(k,v){this.attributes[k]=v}addEventListener(k,v){this.listeners[k]=v}}
+globalThis.document={createElement:t=>new Node(t),createElementNS:(_,t)=>new Node(t)};
+const {makeArc67Visual}=await import('../dist/immersive/arc67-visuals.mjs');const {fresh67,act67}=await import('../dist/immersive/arc67.mjs');
+let actions=[],state=fresh67(),dispatch=a=>actions.push(a);let v=makeArc67Visual('mira-mounting','mounting',state,dispatch);assert.equal(v.tag,'section');assert.ok(v.children.some(n=>n.tag==='svg'&&n.attributes.role==='img'));let b=v.children.find(n=>n.tag==='button');b.listeners.click();assert.deepEqual(actions.pop(),{type:'interact',id:'mounting',choice:'isolated'});
+state=act67(state,{type:'place',position:'isolated'});state=act67(state,{type:'observe'});v=makeArc67Visual('mira-mounting','mounting',state,dispatch);assert.ok(v.children.some(n=>n.textContent.includes('internal geometry')));assert.equal(makeArc67Visual('mira-mounting','mount-notebook',state,dispatch),null);
+let kai=fresh67(7);v=makeArc67Visual('kai-comparison','workshop-record',kai,dispatch);assert.equal(v.children.filter(n=>n.tag==='button').length,2);v.children.filter(n=>n.tag==='button')[1].listeners.click();assert.deepEqual(actions.pop(),{type:'interact',id:'workshop-record',choice:'aligned'});assert.equal(makeArc67Visual('mira-mounting','mounting',kai,dispatch),null);
+console.log('Episode 6–7 accessible visual station structure and dispatch passed (simulated DOM only).');

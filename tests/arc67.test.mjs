@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import {fresh67,restore67,act67,view67,arc67Meta,arc67VoiceCues} from '../dist/immersive/arc67.mjs';
+let s=fresh67();assert.equal(s.chapter,6);assert.match(arc67Meta[6].portrait,/Mira/);assert.match(arc67Meta[7].portrait,/Kai/);assert.ok(arc67VoiceCues[6].some(x=>x.speaker==='Mira'));assert.ok(arc67VoiceCues[7].some(x=>x.speaker==='Kai'));
+s=act67(s,{type:'conclude',choice:'mount-channel'});assert.equal(s.solved,false);
+s=act67(s,{type:'observe'});assert.equal(s.observations.isolated,false);
+s=act67(s,{type:'place',position:'coupled'});s=act67(s,{type:'observe'});s=act67(s,{type:'observe'});assert.equal(view67(s).evidence.length,1);
+s=restore67(JSON.stringify(s));assert.equal(s.observations.coupled,true);s=act67(s,{type:'place',position:'isolated'});s=act67(s,{type:'observe'});
+s=act67(s,{type:'conclude',choice:'all-dangerous'});assert.equal(s.solved,false);s=act67(s,{type:'conclude',choice:'mount-channel'});assert.equal(s.solved,true);
+assert.equal(act67(s,{type:'conclude',choice:'wrong'}).solved,true);s=act67(s,{type:'advance'});assert.equal(s.chapter,7);
+s=act67(s,{type:'condition',condition:'aligned'});s=act67(s,{type:'read',source:'bell'});s=act67(s,{type:'read',source:'mount'});s=act67(s,{type:'conclude',choice:'shared-alignment'});assert.equal(s.solved,false);
+s=act67(s,{type:'condition',condition:'ordinary'});s=act67(s,{type:'read',source:'bell'});assert.equal(s.observations.mountOrdinary,false);s=act67(s,{type:'read',source:'mount'});s=restore67(JSON.stringify(s));s=act67(s,{type:'conclude',choice:'unrelated'});assert.equal(s.solved,false);s=act67(s,{type:'conclude',choice:'shared-alignment'});assert.equal(s.solved,true);assert.equal(act67(s,{type:'advance'}).chapter,7);
+assert.equal(restore67('{broken').chapter,6);assert.equal(restore67({version:1,chapter:7,observations:{},solved:true,conclusion:'shared-alignment'}).solved,false);assert.equal(fresh67(99).chapter,6);
+console.log('Episodes 6–7: evidence, wrong/incomplete actions, repetition, restore and character order passed.');
+const {arc67Scenes,arc67Act}=await import('../dist/immersive/arc67.mjs');
+assert.deepEqual(arc67Scenes.map(s=>s.episode),[6,7]);assert.ok(arc67Scenes.every(s=>s.id&&s.start&&s.objects.every(o=>o.id&&Number.isFinite(o.x)&&Number.isFinite(o.y)&&o.choices.length)));
+let q=fresh67();q=arc67Act(q,{type:'interact',id:'mounting',choice:'isolated'}).state;q=arc67Act(q,{type:'interact',id:'channel',choice:'coupled'}).state;let r=arc67Act(q,{type:'interact',id:'mount-notebook',choice:'mount-channel'});assert.equal(r.complete,true);q=arc67Act(r.state,{type:'advance'}).state;for(const [id,choice] of [['workshop-record','ordinary'],['workshop-record','aligned'],['bell-record','bell-aligned']])q=arc67Act(q,{type:'interact',id,choice}).state;assert.equal(arc67Act(q,{type:'interact',id:'kai-notebook',choice:'shared-alignment'}).complete,true);

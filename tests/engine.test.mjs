@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import {canOccupy,castRay,move,nearestReachable,wrapAngle} from '../dist/immersive/engine.mjs';
+const map=[[1,1,1,1,1],[1,0,0,0,1],[1,0,1,0,1],[1,0,0,0,1],[1,1,1,1,1]];
+assert.ok(canOccupy(map,1.5,1.5));assert.ok(!canOccupy(map,.99,1.5));
+let hit=castRay(map,1.5,1.5,0);assert.ok(Math.abs(hit.distance-2.5)<1e-9);
+hit=castRay(map,1.5,1.5,Math.PI/2);assert.ok(Math.abs(hit.distance-2.5)<1e-9);
+const moved=move(map,{x:1.5,y:1.5,angle:0},1,0,.1);assert.ok(moved.x>1.5);
+const blocked=move(map,{x:3.79,y:1.5,angle:0},1,0,.1);assert.equal(blocked.x,3.79);
+assert.ok(Math.abs(wrapAngle(2*Math.PI+.4)-.4)<1e-9);
+assert.equal(nearestReachable(map,{x:1.5,y:1.5,angle:0},[{id:'near',x:2.2,y:1.5}]).id,'near');
+assert.equal(nearestReachable(map,{x:1.5,y:1.5,angle:0},[{id:'behind',x:1.1,y:1.5}]),null);
+console.log('First-person grid movement, wall collision, ray visibility and interaction proximity passed.');

@@ -1,0 +1,3 @@
+import assert from 'node:assert/strict';import {SAVE_KEY,freshSave,loadSave,writeSave} from '../dist/immersive/save.mjs';
+let data={'awakening-v4':'original'};let storage={getItem:k=>data[k]??null,setItem:(k,v)=>{data[k]=v}};
+let s=freshSave();s.scene='room';s.flags.shard=true;assert.ok(writeSave(storage,s));assert.equal(data['awakening-v4'],'original');assert.equal(loadSave(storage).flags.shard,true);data[SAVE_KEY]='corrupt';assert.equal(loadSave(storage).scene,'intro');assert.equal(writeSave({setItem(){throw Error('denied')}},s),false);console.log('Versioned isolated save and storage failure handling passed.');

@@ -1,0 +1,21 @@
+import assert from 'node:assert/strict';
+class E {constructor(tag){this.tagName=tag;this.children=[];this.style={};this.attrs={};}append(...x){this.children.push(...x);}setAttribute(k,v){this.attrs[k]=v;}setPointerCapture(){} }
+globalThis.document={createElement:n=>new E(n),createElementNS:(_ns,n)=>new E(n)};
+const {makeArc35Visual}=await import('../dist/immersive/arc35-visuals.mjs');let chosen=[];const dispatch=x=>chosen.push(x);
+for(const [scene,id] of [['canal','near_view'],['canal','far_view'],['canal','chart'],['workshop','old_wall'],['archive','lamp']])assert.ok(makeArc35Visual(scene,id,dispatch));
+assert.equal(makeArc35Visual('archive','price',dispatch),null);
+const walk=(n)=>[n,...n.children.flatMap(walk)];
+let water=makeArc35Visual('canal','near_view',dispatch);assert.ok(walk(water).some(n=>n.tagName==='style'&&n.textContent.includes('prefers-reduced-motion')),'water motion respects reduced motion');
+let covered=makeArc35Visual('workshop','old_wall',dispatch,{flags:{}});assert.equal(covered.attrs['data-revealed'],'false');const surf=covered.children[0];assert.ok(surf.children[0].style.cssText.includes('left:40%'));assert.ok(surf.children[1].style.cssText.includes('inset:0 38% 0 0'),'cover initially overlays mark');
+let exposed=makeArc35Visual('workshop','old_wall',dispatch,{flags:{wall_revealed:true}});assert.equal(exposed.attrs['data-revealed'],'true');assert.equal(exposed.children[0].children[1].style.transform,'translateX(-115%)');
+let noInk=makeArc35Visual('archive','lamp',dispatch,{flags:{}});assert.equal(noInk.attrs['data-ink-visible'],'false');assert.equal(walk(noInk).filter(n=>n.attrs['data-crystal-ink']).length,0);
+let yesInk=makeArc35Visual('archive','lamp',dispatch,{flags:{crystal_ink:true}});assert.equal(yesInk.attrs['data-ink-visible'],'true');assert.equal(walk(yesInk).filter(n=>n.attrs['data-crystal-ink']==='visible').length,1);
+let wall=makeArc35Visual('workshop','old_wall',dispatch);wall.children.find(x=>x.tagName==='button').onclick();assert.equal(chosen.pop(),'expose');
+let lamp=makeArc35Visual('archive','lamp',dispatch);lamp.children.find(x=>x.tagName==='button').onclick();assert.equal(chosen.pop(),'oblique');
+let surface=lamp.children[0];surface.onpointerdown({pointerId:1,clientX:100});surface.onpointerup({pointerId:1,clientX:165});assert.equal(chosen.pop(),'oblique');surface.onpointerdown({pointerId:2,clientX:100});surface.onpointercancel();surface.onpointerup({pointerId:2,clientX:180});assert.equal(chosen.length,0);surface.onpointerdown({pointerId:3,clientX:100});lamp.cancelInteraction();surface.onpointerup({pointerId:3,clientX:180});assert.equal(chosen.length,0);
+console.log('Arc visual fallback buttons, gestures and pointer cancellation passed with simulated DOM.');
+const {freshArc35,arc35Act}=await import('../dist/immersive/arc35.mjs');let state=freshArc35();
+const act=(type,id,choice)=>{const r=arc35Act(state,{type,id,choice});state=r.state;return r;};
+for(const [id,choice] of [['near_view','observe'],['far_view','observe'],['chart','inspect'],['reflection','corresponds']])act('interact',id,choice);act('advance');for(const [id,choice] of [['canal_light','observe'],['old_wall','expose'],['research','conceal']])act('interact',id,choice);act('advance');
+act('interact','lamp','oblique');assert.equal(makeArc35Visual('archive','lamp',dispatch,state).attrs['data-ink-visible'],'false','premature lamp action cannot reveal ink');
+act('interact','keeper','speak');act('interact','western_stacks','open');act('interact','lamp','oblique');assert.equal(makeArc35Visual('archive','lamp',dispatch,state).attrs['data-ink-visible'],'true','valid oblique action reveals ink');

@@ -1,0 +1,12 @@
+/** Illustrative forensic comparison for the high-temple instrument. */
+import {restoreArc1820} from './arc1820.mjs';
+export function makeArc1820Visual(sceneId,objectId,state,dispatch){
+ if(typeof dispatch!=='function')throw new TypeError('dispatch callback required');
+ if(sceneId!=='high-temple'||objectId!=='comparison')return null;
+ const s=restoreArc1820(state?.state??state),w=document.createElement('section');w.className='arc1820-visual';w.setAttribute('aria-label','Original and altered instrument alignment');w.style.cssText='margin:.6rem 0;padding:.5rem;border:1px solid #70949a;border-radius:.7rem;background:#071d2b';
+ const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 360 120');svg.setAttribute('role','img');svg.setAttribute('aria-label','A gold line and fixed notch on stone, a cyan pointer crossing it at an angle, with a clean arc and dust near the instrument ring');svg.style.cssText='display:block;width:100%;max-height:120px;background:#112a38;border-radius:.4rem';
+ const add=(name,attrs)=>{const e=document.createElementNS('http://www.w3.org/2000/svg',name);for(const [k,v] of Object.entries(attrs))e.setAttribute(k,String(v));svg.append(e);};
+ add('circle',{cx:180,cy:60,r:47,fill:'none',stroke:'#b8975d','stroke-width':3});add('path',{d:'M180 13 V107 M133 60 H227',stroke:'#bb9a63','stroke-width':2});add('path',{d:'M180 60 L222 36',stroke:'#87dbe3','stroke-width':4});add('path',{d:'M169 13 h22 v8 h-22z',fill:'#b8975d'});add('path',{d:'M180 13 A47 47 0 0 1 222 36',fill:'none',stroke:'#f0e1bc','stroke-width':5,opacity:.7});add('path',{d:'M230 32 l7 -5 m-4 13 l8 -1 m-16 -16 l3 -7',stroke:'#d4c5a6','stroke-width':2});w.append(svg);
+ const p=document.createElement('p');p.textContent=(s.flags.markers||s.flags.instrument)?'Gold is the stone line and notch; cyan is the pointer. The pale arc is clean; flecks are dust. Compare these with the fixed stone joints.':'Study an alignment or the instrument in the room to ground the comparison.';p.style.cssText='margin:.35rem;color:#c9dddb;font-size:.85rem';w.append(p);
+ for(const [label,choice] of [['The instrument moved relative to the stone','altered'],['The stone shifted while the instrument stayed fixed','original'],['Look again','unknown']]){const b=document.createElement('button');b.className='secondary';b.type='button';b.textContent=label;b.style.cssText='margin:.25rem;min-height:48px';b.onclick=()=>dispatch({type:'interact',id:'comparison',choice});w.append(b);}return w;
+}

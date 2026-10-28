@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';
+import {isPortrait,applyOrientation} from '../dist/immersive/orientation.mjs';
+assert.equal(isPortrait(390,844),true,'phone portrait prompts rotation');
+assert.equal(isPortrait(844,390),false,'phone landscape permits interaction');
+assert.equal(isPortrait(400,400),true,'square matches CSS orientation: portrait');
+let resets=0;const controls={reset(){resets++;}};
+assert.equal(applyOrientation(844,390,controls),false);assert.equal(resets,1);
+assert.equal(applyOrientation(390,844,controls),true);assert.equal(resets,2,'portrait blocks and resets active pointers');
+assert.equal(applyOrientation(844,390,controls),false);assert.equal(resets,3,'landscape resumes with motion cleared');
+console.log('Orientation classification and transition resets passed; no orientation-lock API or physical rotation was tested.');

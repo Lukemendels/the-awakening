@@ -1,0 +1,21 @@
+import assert from 'node:assert/strict';
+import {arc810Scenes,fresh810,canResume810,restore810,arc810Act} from '../dist/immersive/arc810.mjs';
+let s=fresh810();assert.ok(canResume810(s));assert.deepEqual(arc810Scenes.map(x=>x.episode),[8,9,10]);
+const act=(id,choice)=>{let before=structuredClone(s),r=arc810Act(s,{type:'interact',id,choice});assert.deepEqual(s,before,'reducer must not mutate input');s=r.state;return r;};
+let r=act('route-chart','inner');assert.equal(r.complete,false);assert.equal(s.route,null);assert.match(r.message,/not yet/);
+r=act('route-chart','wait');assert.equal(r.complete,false);r=act('dock-signal','observe');assert.equal(r.changed,true);r=act('dock-signal','observe');assert.equal(r.changed,false);
+r=act('route-chart','canal');assert.equal(r.complete,false,'unsupported alternate route cannot bypass evidence');r=act('route-chart','inner');assert.equal(r.complete,true);assert.equal(s.route,'inner');
+s=restore810(JSON.stringify(s));assert.ok(canResume810(s));r=arc810Act(s,{type:'advance'});s=r.state;assert.equal(s.episode,9);
+r=act('marked-wall','observe');assert.match(r.message,/Carry and place/);assert.equal(s.apparatus,'bench');r=act('water-channel','take');assert.equal(r.changed,false);assert.equal(s.apparatus,'bench');
+r=act('specimen-setup','single');act('specimen-setup','take');assert.equal(s.apparatus,'carried');r=act('specimen-setup','take');assert.equal(r.changed,false);act('marked-wall','place');act('marked-wall','observe');act('marked-wall','take');act('water-channel','place');act('water-channel','observe');r=act('experiment-notes','localized');assert.equal(r.complete,false,'single control cannot imply paired result');
+act('water-channel','take');act('specimen-setup','place');act('specimen-setup','paired');act('specimen-setup','take');act('marked-wall','place');act('marked-wall','observe');r=act('experiment-notes','localized');assert.equal(r.complete,false,'one side is insufficient');act('marked-wall','take');act('water-channel','place');act('water-channel','observe');r=act('experiment-notes','same-everywhere');assert.equal(r.complete,false);r=act('experiment-notes','localized');assert.equal(r.complete,true);
+s=restore810(JSON.stringify(s));s=arc810Act(s,{type:'advance'}).state;assert.equal(s.episode,10);r=act('city-model','resonance');assert.equal(r.complete,false);
+act('architecture-record','overlay');r=act('city-model','resonance');assert.equal(r.complete,false);act('astronomy-record','overlay');r=act('city-model','trade-only');assert.equal(r.complete,false);r=act('city-model','resonance');assert.equal(r.complete,true,'any two evidence strands suffice');
+s=restore810(JSON.stringify(s));s=arc810Act(s,{type:'advance'}).state;assert.equal(s.episode,11,'handoff sentinel');assert.ok(canResume810(s));assert.ok(s.flags.ep10_conclusion&&s.flags.ep9_conclusion&&s.flags.route_selected);assert.equal(arc810Act(s,{type:'advance'}).state.episode,11);
+// Alternate route can be supported by the vendor alone; no inspect-all gate.
+let alt=fresh810();alt=arc810Act(alt,{type:'interact',id:'vendor-signal',choice:'observe'}).state;let altResult=arc810Act(alt,{type:'interact',id:'route-chart',choice:'canal'});assert.equal(altResult.complete,true);assert.equal(altResult.state.flags.dock_signal,undefined);
+for(const malformed of [{...fresh810(),version:2},{...fresh810(),unknown:true},{...fresh810(),flags:{dock_signal:'yes'}},{...fresh810(),episode:9},{...fresh810(),route:'canal'},{...fresh810(),samples:{wall_single:true}},{...fresh810(),journal:Array(17).fill('x')},{...fresh810(),hints:{8:4}}]){assert.equal(canResume810(malformed),false);assert.equal(restore810(malformed).episode,8);}
+console.log('Episodes 8–10: alternate route evidence, controlled spatial experiment, flexible synthesis, wrong actions, repeats, checkpoint restore and Ep11 handoff passed.');
+const premature=fresh810();premature.flags.ep10_conclusion=true;premature.flags.architecture=true;premature.flags.water=true;assert.equal(canResume810(premature),false,'future evidence must not appear before its episode');
+
+let draft=structuredClone(s);delete draft.apparatus;assert.equal(canResume810(draft),true);assert.equal(restore810(draft).apparatus,'bench');let badLocation=structuredClone(s);badLocation.apparatus='unknown';assert.equal(canResume810(badLocation),false);

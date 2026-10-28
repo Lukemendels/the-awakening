@@ -57,8 +57,20 @@ export class ImmersiveAudio {
     this.epoch = 0;
     this.scene='shop';
     this.sceneNodes=null;
+    this.volume=1;
+    this.eventTimer=null;
+    this.hidden=false;
+    this.lastCue=new Map();
+    this.enabling=null;
   }
-  async enable() {
+  enable() {
+    if (this.enabling) return this.enabling;
+    const pending=this.enableOnce();
+    this.enabling=pending;
+    pending.finally(()=>{if(this.enabling===pending)this.enabling=null;});
+    return pending;
+  }
+  async enableOnce() {
     if (this.disposed) return false;
     const ticket = ++this.epoch;
     try {
@@ -72,9 +84,10 @@ export class ImmersiveAudio {
       this.enabled = true;
       const master = this.master = ctx.createGain();
       master.gain.setValueAtTime(0,ctx.currentTime);
-      master.gain.linearRampToValueAtTime(this.narrating?.085:.24,ctx.currentTime+.3);
+      master.gain.linearRampToValueAtTime((this.narrating?.085:.24)*this.volume,ctx.currentTime+.3);
       master.connect(ctx.destination);
       this.startAmbience();
+      this.scheduleEvent();
       return true;
     } catch (_) { this.enabled = false; return false; }
   }
@@ -83,7 +96,7 @@ export class ImmersiveAudio {
     // Soft, slowly beating foundations. Room profiles shift them rather than layering more drones.
     for(let i=0;i<3;i++){
       const osc=ctx.createOscillator(),gain=ctx.createGain();osc.type='sine';
-      osc.frequency.value=config.bed[i];gain.gain.value=config.levels[i];
+      osc.frequency.value=config.bed[i];gain.gain.value=config.levels[i]*.12;
       osc.connect(gain).connect(this.master);osc.start(now);beds.push({osc,gain});this.ambient.push(osc,gain);
     }
     const length=ctx.sampleRate*2,buffer=ctx.createBuffer(1,length,ctx.sampleRate),data=buffer.getChannelData(0);let previous=0;
@@ -100,9 +113,9 @@ export class ImmersiveAudio {
     const woodFilter=ctx.createBiquadFilter(),woodGain=ctx.createGain(),woodPan=ctx.createStereoPanner();woodFilter.type='bandpass';woodFilter.frequency.value=config.woodCut??180;woodFilter.Q.value=.7;woodGain.gain.value=config.wood??0;
     noise.connect(woodFilter).connect(woodGain).connect(woodPan).connect(this.master);
     // A very low crystalline overtone sits below the environmental layers.
-    const shimmer=ctx.createOscillator(),shimmerGain=ctx.createGain();shimmer.type='sine';shimmer.frequency.value=config.shimmer;shimmerGain.gain.value=.006;shimmer.connect(shimmerGain).connect(this.master);
+    const shimmer=ctx.createOscillator(),shimmerGain=ctx.createGain();shimmer.type='sine';shimmer.frequency.value=config.shimmer;shimmerGain.gain.value=.001;shimmer.connect(shimmerGain).connect(this.master);
     // Positional array resonance: a separate source, not a hidden-answer cue.
-    const arrayOsc=ctx.createOscillator(),arrayGain=ctx.createGain(),arrayPan=ctx.createStereoPanner();arrayOsc.type='sine';arrayOsc.frequency.value=config.arrayHz??220;arrayGain.gain.value=config.array??0;arrayOsc.connect(arrayGain).connect(arrayPan).connect(this.master);
+    const arrayOsc=ctx.createOscillator(),arrayGain=ctx.createGain(),arrayPan=ctx.createStereoPanner();arrayOsc.type='sine';arrayOsc.frequency.value=config.arrayHz??220;arrayGain.gain.value=(config.array??0)*.18;arrayOsc.connect(arrayGain).connect(arrayPan).connect(this.master);
     noise.start(now);swell.start(now);shimmer.start(now);arrayOsc.start(now);this.waterPan=waterPan;this.waterGain=waterGain;
     this.sceneNodes={beds,waterFilter,airFilter,airGain,shimmer,woodFilter,woodGain,woodPan,arrayOsc,arrayGain,arrayPan};
     this.ambient.push(noise,waterFilter,waterGain,waterPan,airFilter,airGain,swell,depth,shimmer,shimmerGain,woodFilter,woodGain,woodPan,arrayOsc,arrayGain,arrayPan);this.updateSpatial();
@@ -110,10 +123,12 @@ export class ImmersiveAudio {
   /** Changes acoustic character without restarting sources or interrupting ducking. */
   setScene(id) {
     const key=SCENE_ALIAS[id]||id;if(!Object.hasOwn(SCENE_SOUND,key))return false;
+    this.stopCues();
+    if(key!==this.scene)this.scheduleEvent();
     this.scene=key;const n=this.sceneNodes,ctx=this.context;if(!this.enabled||!n||!ctx)return true;
     const c=SCENE_SOUND[key],now=ctx.currentTime;
     const ease=(p,value)=>{p.cancelScheduledValues(now);p.setTargetAtTime(value,now,.45);};
-    n.beds.forEach(({osc,gain},i)=>{ease(osc.frequency,c.bed[i]);ease(gain.gain,c.levels[i]);});
+    n.beds.forEach(({osc,gain},i)=>{ease(osc.frequency,c.bed[i]);ease(gain.gain,c.levels[i]*.12);});
     ease(n.waterFilter.frequency,c.waterCut);ease(n.airFilter.frequency,c.airCut);ease(n.airGain.gain,c.air);ease(n.shimmer.frequency,c.shimmer);ease(n.woodFilter.frequency,c.woodCut??180);ease(n.arrayOsc.frequency,c.arrayHz??220);
     this.updateSpatial();return true;
   }
@@ -124,7 +139,45 @@ export class ImmersiveAudio {
     if(!this.enabled||!this.master||!this.context)return;
     const now=this.context.currentTime, p=this.master.gain;
     p.cancelScheduledValues(now);
-    p.setTargetAtTime(this.narrating?.085:.24,now,this.narrating?.10:.35);
+    p.setTargetAtTime((this.narrating?.085:.24)*this.volume,now,this.narrating?.10:.35);
+  }
+  setVolume(value) {
+    if (!Number.isFinite(value)) return;
+    this.volume=Math.max(0,Math.min(1,value));
+    this.setNarrating(this.narrating);
+  }
+  async setHidden(hidden) {
+    this.hidden=Boolean(hidden);
+    if (!this.context || !this.enabled) return;
+    if (hidden) { clearTimeout(this.eventTimer); this.eventTimer=null; try { await this.context.suspend(); } catch (_) {} }
+    else { try { await this.context.resume(); } catch (_) {} if (this.enabled && !this.hidden) this.scheduleEvent(); }
+  }
+  // Sparse, scene-grounded gestures; never scheduled while hidden or muted.
+  scheduleEvent() {
+    clearTimeout(this.eventTimer);
+    if (!this.enabled || this.hidden) return;
+    this.eventTimer=setTimeout(()=>{
+      this.eventTimer=null;
+      if (!this.enabled || this.hidden) return;
+      const water=['canal','barge','passage','chamber','ascent','memory','network','restoration'];
+      const crystal=['artisan','warehouse','summit','revelation','initiation'];
+      const kind=water.includes(this.scene)?'water':crystal.includes(this.scene)?'glass':this.scene==='tower'?'bell':this.scene==='archive'||this.scene==='records'?'paper':'wood';
+      const e=this.emitters[kind==='water'?'water':kind==='glass'?'array':'wood'];
+      this.cue(kind,e.x,e.z);
+      this.scheduleEvent();
+    },18000+Math.random()*26000);
+    this.eventTimer?.unref?.();
+  }
+  // A restrained motif on selected dramatic beats, never on every slide.
+  cinematic(episode, phase, index) {
+    this.stopCues();
+    if (index!==0) return;
+    if (episode===1) this.cue('bell');
+    else if ([12,15,17,18].includes(episode) && phase==='intro') this.cue('warning_low');
+    else if ([14,19,20,23,24].includes(episode) && phase==='outro') this.cue('reveal');
+  }
+  stopCues() {
+    for (const voice of [...this.voices]) voice.stop();
   }
   setListener(x,z,heading) {
     if (![x,z,heading].every(Number.isFinite)) return;
@@ -144,16 +197,18 @@ export class ImmersiveAudio {
   updateSpatial() {
     if(!this.enabled||!this.waterPan||!this.waterGain) return;
     const now=this.context.currentTime,c=SCENE_SOUND[this.scene],n=this.sceneNodes;
-    const sources=[['water',this.waterPan,this.waterGain,c.water],['wood',n?.woodPan,n?.woodGain,c.wood??0],['array',n?.arrayPan,n?.arrayGain,c.array??0]];
+    const sources=[['water',this.waterPan,this.waterGain,c.water],['wood',n?.woodPan,n?.woodGain,c.wood??0],['array',n?.arrayPan,n?.arrayGain,(c.array??0)*.18]];
     for(const [kind,pan,gain,level] of sources){if(!pan||!gain)continue;const e=this.emitters[kind],s=this.spatial(e.x,e.z);pan.pan.setTargetAtTime(s.pan,now,.08);gain.gain.setTargetAtTime(level*s.attenuation,now,.12);}
   }
   cue(kind,x=this.listener.x,z=this.listener.z) {
-    if (!this.enabled||!this.context||!this.master) return;
+    if (!this.enabled||this.hidden||!this.context||!this.master||kind==='step'||kind==='inspect') return;
     const ctx=this.context, now=ctx.currentTime, position=this.spatial(x,z);
+    if (now-(this.lastCue.get(kind) ?? -Infinity)<.4) return;
+    this.lastCue.set(kind,now);
     // Limit simultaneous voices; stop the oldest before making another.
     if (this.voices.size>=12) this.voices.values().next().value.stop();
     const osc=ctx.createOscillator(), gain=ctx.createGain(), pan=ctx.createStereoPanner();
-    const settings={inspect:[440,.32,.10],success:[660,.65,.12],step:[92,.09,.035],warning:[180,.50,.09],bell:[294,1.7,.045],paper:[160,.12,.025],wood:[118,.16,.035],glass:[520,.38,.04],warning_low:[136,.65,.025],warning_mid:[157,.75,.035],warning_high:[178,.85,.045]};
+    const settings={inspect:[440,.32,.10],success:[660,.65,.12],step:[92,.09,.035],warning:[180,.50,.09],bell:[294,1.7,.045],paper:[160,.12,.025],wood:[118,.16,.035],glass:[520,.38,.04],warning_low:[136,.65,.025],warning_mid:[157,.75,.035],warning_high:[178,.85,.045],water:[310,.7,.018],reveal:[220,2.2,.035]};
     const [freq,duration,level]=settings[kind]||settings.inspect;
     osc.type=(kind.startsWith('warning')||kind==='wood')?'triangle':'sine';
     osc.frequency.setValueAtTime(freq,now);
@@ -166,22 +221,33 @@ export class ImmersiveAudio {
     // Inharmonic partials give the tower bell and handled crystal a soft body,
     // rather than the same pure oscillator used for all interactions.
     const oscillators=[osc],nodes=[osc,gain,pan];
-    if(kind==='bell'||kind==='glass')for(const [ratio,amount] of [[2.03,.22],[3.93,.08]]){
+    // Filtered noise gives physical gestures texture; generated in memory, no samples.
+    if (['water','paper','wood'].includes(kind)) {
+      const source=ctx.createBufferSource(), filter=ctx.createBiquadFilter(), texture=ctx.createGain();
+      const length=Math.max(1,Math.floor(ctx.sampleRate*duration));
+      const buffer=ctx.createBuffer(1,length,ctx.sampleRate), data=buffer.getChannelData(0);
+      let smooth=0;for(let i=0;i<length;i++){smooth=.72*smooth+.28*(Math.random()*2-1);data[i]=smooth;}
+      source.buffer=buffer;filter.type='bandpass';filter.frequency.value=kind==='water'?1100:kind==='paper'?1900:380;filter.Q.value=.7;
+      texture.gain.setValueAtTime(.0001,now);texture.gain.exponentialRampToValueAtTime(level*.7*position.attenuation,now+.025);texture.gain.exponentialRampToValueAtTime(.0001,now+duration);
+      source.connect(filter).connect(texture).connect(pan);oscillators.push(source);nodes.push(source,filter,texture);
+    }
+    if(kind==='bell'||kind==='glass'||kind==='reveal')for(const [ratio,amount] of [[2.03,.22],[3.93,.08]]){
       const partial=ctx.createOscillator(),pg=ctx.createGain();partial.type='sine';partial.frequency.value=freq*ratio;
       pg.gain.setValueAtTime(.0001,now);pg.gain.exponentialRampToValueAtTime(level*amount*position.attenuation,now+.018);
       pg.gain.exponentialRampToValueAtTime(.0001,now+duration*.65);partial.connect(pg).connect(pan);oscillators.push(partial);nodes.push(partial,pg);
     }
-    const voice={stop:()=>{for(const o of oscillators)try{o.stop();}catch(_){}},nodes};
-    this.voices.add(voice);let cleaned=false;
-    osc.onended=()=>{if(cleaned)return;cleaned=true;voice.nodes.forEach(n=>{try{n.disconnect();}catch(_){}});this.voices.delete(voice);};
+    let cleaned=false;
+    const cleanup=()=>{if(cleaned)return;cleaned=true;nodes.forEach(n=>{try{n.disconnect();}catch(_){}});this.voices.delete(voice);};
+    const voice={stop:()=>{for(const o of oscillators)try{o.stop();}catch(_){}cleanup();},nodes};
+    this.voices.add(voice);osc.onended=cleanup;
     for(const o of oscillators){o.start(now);o.stop(now+duration+.02);}
   }
   mute() {
-    ++this.epoch; this.enabled=false;
+    ++this.epoch; this.enabled=false; this.enabling=null; clearTimeout(this.eventTimer);this.eventTimer=null;
     for(const voice of this.voices) voice.stop();
     this.voices.clear();
     for(const node of this.ambient){try{node.stop?.();}catch(_){}try{node.disconnect();}catch(_){}}
-    this.ambient=[];this.waterPan=null;this.waterGain=null;this.sceneNodes=null;
+    this.lastCue.clear();this.ambient=[];this.waterPan=null;this.waterGain=null;this.sceneNodes=null;
     if(this.master){try{this.master.disconnect();}catch(_){}this.master=null;}
     // Keep the empty context alive for a subsequent user-gesture enable.
     // Suspending here can race an immediate re-enable; dispose closes it.

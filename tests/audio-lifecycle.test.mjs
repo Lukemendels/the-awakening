@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict';
+import {ImmersiveAudio} from '../dist/immersive/audio.mjs';
+class Param { constructor(){this.value=0} setValueAtTime(v){this.value=v} linearRampToValueAtTime(v){this.value=v} exponentialRampToValueAtTime(v){this.value=v} setTargetAtTime(v){this.value=v} cancelScheduledValues(){} }
+class Node { constructor(){this.frequency=new Param;this.gain=new Param;this.pan=new Param;this.Q=new Param;this.disconnected=false} connect(n){return n} start(){if(this.started)throw Error('source started twice');this.started=true} stop(when){if(when===undefined)this.onended?.()} disconnect(){this.disconnected=true} }
+class Context { constructor(){this.currentTime=1;this.sampleRate=8000;this.state='running';this.destination=new Node;this.nodes=[]} make(){const n=new Node;this.nodes.push(n);return n} createGain(){return this.make()} createOscillator(){return this.make()} createBiquadFilter(){return this.make()} createStereoPanner(){return this.make()} createBufferSource(){return this.make()} createBuffer(_,n){return {getChannelData:()=>new Float32Array(n)}} async resume(){this.state='running'} async suspend(){this.state='suspended'} async close(){this.state='closed'} }
+globalThis.AudioContext=Context;
+const a=new ImmersiveAudio();a.setVolume(.5);await a.enable();assert.equal(a.master.gain.value,.12);assert.ok(a.eventTimer);
+a.setNarrating(true);assert.equal(a.master.gain.value,.0425);a.setVolume(2);assert.equal(a.master.gain.value,.085);a.setVolume(-1);assert.equal(a.master.gain.value,0);a.setVolume(.5);
+const n=a.context.nodes.length;a.cue('step');a.cue('inspect');assert.equal(a.context.nodes.length,n,'ordinary movement and inspection are silent');
+a.cue('paper');const after=a.context.nodes.length;a.cue('paper');assert.equal(a.context.nodes.length,after,'repeat gesture is rate limited');
+a.cue('glass');assert.ok(a.voices.size>0);a.setScene('canal');assert.equal(a.voices.size,0,'scene changes stop previous one-shots');
+await a.setHidden(true);assert.equal(a.eventTimer,null);assert.equal(a.context.state,'suspended');await a.setHidden(false);assert.ok(a.eventTimer);assert.equal(a.context.state,'running');
+const ambient=[...a.ambient];a.mute();await a.setHidden(false);assert.equal(a.enabled,false,'visibility restore cannot unmute');assert.equal(a.eventTimer,null);assert.equal(a.eventTimer,null);assert.ok(ambient.every(n=>n.disconnected));await a.enable();assert.ok(a.eventTimer);await a.dispose();assert.equal(a.eventTimer,null);
+const b=new ImmersiveAudio();await b.enable();let finishResume;b.context.resume=()=>new Promise(resolve=>{finishResume=resolve});const restoring=b.setHidden(false);b.mute();finishResume();await restoring;assert.equal(b.enabled,false,'pending resume cannot undo mute');assert.equal(b.eventTimer,null);await b.dispose();delete globalThis.AudioContext;
+console.log('Volume, ducking, rate limit, background and teardown passed with mocked Web Audio.');

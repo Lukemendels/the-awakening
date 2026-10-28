@@ -5,7 +5,7 @@ class Node { constructor(){this.frequency=new Param;this.gain=new Param;this.pan
 class Context { constructor(){this.currentTime=1;this.sampleRate=8000;this.state='running';this.destination=new Node;this.nodes=[]} make(){const n=new Node;this.nodes.push(n);return n} createGain(){return this.make()} createOscillator(){return this.make()} createBiquadFilter(){return this.make()} createStereoPanner(){return this.make()} createBufferSource(){return this.make()} createBuffer(_,n){return {getChannelData:()=>new Float32Array(n)}} async resume(){this.state='running'} async suspend(){this.state='suspended'} async close(){this.state='closed'} }
 globalThis.AudioContext=Context;
 const a=new ImmersiveAudio();a.setVolume(.5);await a.enable();assert.equal(a.master.gain.value,.12);assert.ok(a.eventTimer);
-a.setNarrating(true);assert.equal(a.master.gain.value,.0425);a.setVolume(2);assert.equal(a.master.gain.value,.085);a.setVolume(-1);assert.equal(a.master.gain.value,0);a.setVolume(.5);
+a.setNarrating(true);assert.equal(a.master.gain.value,.07);a.setVolume(2);assert.equal(a.master.gain.value,.14);a.setVolume(-1);assert.equal(a.master.gain.value,0);a.setVolume(.5);
 const n=a.context.nodes.length;a.cue('step');a.cue('inspect');assert.equal(a.context.nodes.length,n,'ordinary movement and inspection are silent');
 a.cue('paper');const after=a.context.nodes.length;a.cue('paper');assert.equal(a.context.nodes.length,after,'repeat gesture is rate limited');
 a.cue('glass');assert.ok(a.voices.size>0);a.setScene('canal');assert.equal(a.voices.size,0,'scene changes stop previous one-shots');

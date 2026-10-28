@@ -46,6 +46,7 @@ export class ImmersiveAudio {
   constructor() {
     this.context = null;
     this.master = null;
+    this.limiter = null;
     this.ambient = [];
     this.voices = new Set();
     this.enabled = false;
@@ -87,7 +88,12 @@ export class ImmersiveAudio {
       const master = this.master = ctx.createGain();
       master.gain.setValueAtTime(0,ctx.currentTime);
       master.gain.linearRampToValueAtTime((this.narrating?.14:.24)*this.volume,ctx.currentTime+.3);
-      master.connect(ctx.destination);
+      if (ctx.createDynamicsCompressor) {
+        this.limiter=ctx.createDynamicsCompressor();
+        this.limiter.threshold.value=-8;this.limiter.knee.value=3;this.limiter.ratio.value=12;
+        this.limiter.attack.value=.003;this.limiter.release.value=.18;
+        master.connect(this.limiter).connect(ctx.destination);
+      } else master.connect(ctx.destination);
       this.startAmbience();
       if(this.hidden)this.setHidden(true);else this.scheduleEvent();
       return true;
@@ -104,6 +110,14 @@ export class ImmersiveAudio {
     const length=ctx.sampleRate*2,buffer=ctx.createBuffer(1,length,ctx.sampleRate),data=buffer.getChannelData(0);let previous=0;
     for(let i=0;i<length;i++){previous=.85*previous+.15*(Math.random()*2-1);data[i]=previous;}
     const edge=Math.min(256,Math.floor(length/4));for(let i=0;i<edge;i++){const f=i/edge;data[i]*=f;data[length-1-i]*=f;}
+    // An original, broad midrange air texture translates to small speakers.
+    const textureBuffer=ctx.createBuffer(1,length,ctx.sampleRate),textureData=textureBuffer.getChannelData(0);
+    for(let i=0;i<length;i++)textureData[i]=(Math.random()*2-1);
+    for(let i=0;i<edge;i++){const f=i/edge;textureData[i]*=f;textureData[length-1-i]*=f;}
+    const texture=ctx.createBufferSource(),textureFilter=ctx.createBiquadFilter(),textureGain=ctx.createGain();
+    texture.buffer=textureBuffer;texture.loop=true;textureFilter.type='bandpass';textureFilter.frequency.value=Math.max(750,config.airCut);textureFilter.Q.value=.55;textureGain.gain.value=.35+config.air*5;
+    texture.connect(textureFilter).connect(textureGain).connect(this.master);texture.start(now);
+    const textureSwell=ctx.createOscillator(),textureDepth=ctx.createGain();textureSwell.frequency.value=.065;textureDepth.gain.value=.07;textureSwell.connect(textureDepth).connect(textureGain.gain);textureSwell.start(now);
     // Water and air are independent filtered layers, never a recognizable prerecorded sample.
     const noise=ctx.createBufferSource(),waterFilter=ctx.createBiquadFilter(),waterGain=ctx.createGain(),waterPan=ctx.createStereoPanner();
     noise.buffer=buffer;noise.loop=true;waterFilter.type='lowpass';waterFilter.frequency.value=config.waterCut;waterGain.gain.value=config.water*4;
@@ -119,8 +133,8 @@ export class ImmersiveAudio {
     // Positional array resonance: a separate source, not a hidden-answer cue.
     const arrayOsc=ctx.createOscillator(),arrayGain=ctx.createGain(),arrayPan=ctx.createStereoPanner();arrayOsc.type='sine';arrayOsc.frequency.value=config.arrayHz??220;arrayGain.gain.value=(config.array??0)*.4;arrayOsc.connect(arrayGain).connect(arrayPan).connect(this.master);
     noise.start(now);swell.start(now);shimmer.start(now);arrayOsc.start(now);this.waterPan=waterPan;this.waterGain=waterGain;
-    this.sceneNodes={beds,waterFilter,airFilter,airGain,shimmer,woodFilter,woodGain,woodPan,arrayOsc,arrayGain,arrayPan};
-    this.ambient.push(noise,waterFilter,waterGain,waterPan,airFilter,airGain,swell,depth,shimmer,shimmerGain,woodFilter,woodGain,woodPan,arrayOsc,arrayGain,arrayPan);this.updateSpatial();
+    this.sceneNodes={beds,waterFilter,airFilter,airGain,shimmer,woodFilter,woodGain,woodPan,arrayOsc,arrayGain,arrayPan,textureFilter,textureGain};
+    this.ambient.push(texture,textureFilter,textureGain,textureSwell,textureDepth,noise,waterFilter,waterGain,waterPan,airFilter,airGain,swell,depth,shimmer,shimmerGain,woodFilter,woodGain,woodPan,arrayOsc,arrayGain,arrayPan);this.updateSpatial();
   }
   /** Changes acoustic character without restarting sources or interrupting ducking. */
   setScene(id) {
@@ -131,7 +145,7 @@ export class ImmersiveAudio {
     const c=SCENE_SOUND[key],now=ctx.currentTime;
     const ease=(p,value)=>{p.cancelScheduledValues(now);p.setTargetAtTime(value,now,.45);};
     n.beds.forEach(({osc,gain},i)=>{ease(osc.frequency,c.bed[i]);ease(gain.gain,c.levels[i]*.30);});
-    ease(n.waterFilter.frequency,c.waterCut);ease(n.airFilter.frequency,c.airCut);ease(n.airGain.gain,c.air*4);ease(n.shimmer.frequency,c.shimmer);ease(n.woodFilter.frequency,c.woodCut??180);ease(n.arrayOsc.frequency,c.arrayHz??220);
+    ease(n.textureFilter.frequency,Math.max(750,c.airCut));ease(n.textureGain.gain,.35+c.air*5);ease(n.waterFilter.frequency,c.waterCut);ease(n.airFilter.frequency,c.airCut);ease(n.airGain.gain,c.air*4);ease(n.shimmer.frequency,c.shimmer);ease(n.woodFilter.frequency,c.woodCut??180);ease(n.arrayOsc.frequency,c.arrayHz??220);
     this.updateSpatial();return true;
   }
   // Voice must be routed separately from this master bus, or it too will be ducked.
@@ -223,7 +237,7 @@ export class ImmersiveAudio {
     // Limit simultaneous voices; stop the oldest before making another.
     if (this.voices.size>=12) this.voices.values().next().value.stop();
     const osc=ctx.createOscillator(), gain=ctx.createGain(), pan=ctx.createStereoPanner();
-    const settings={inspect:[440,.32,.10],success:[660,.65,.12],step:[92,.09,.035],warning:[180,.50,.09],bell:[294,1.7,.045],paper:[160,.12,.025],wood:[118,.16,.035],glass:[520,.38,.04],warning_low:[136,.65,.025],warning_mid:[157,.75,.035],warning_high:[178,.85,.045],water:[310,.7,.018],reveal:[220,2.2,.035],test:[440,.7,.20]};
+    const settings={inspect:[440,.32,.10],success:[660,.65,.12],step:[92,.09,.035],warning:[180,.50,.09],bell:[294,1.7,.045],paper:[160,.12,.025],wood:[118,.16,.035],glass:[520,.38,.04],warning_low:[136,.65,.025],warning_mid:[157,.75,.035],warning_high:[178,.85,.045],water:[310,.7,.018],reveal:[220,2.2,.035],test:[440,.7,.50]};
     const [freq,duration,level]=settings[kind]||settings.inspect;
     osc.type=(kind.startsWith('warning')||kind==='wood')?'triangle':'sine';
     osc.frequency.setValueAtTime(freq,now);
@@ -231,6 +245,7 @@ export class ImmersiveAudio {
     if(kind==='step'||kind==='wood'||kind==='paper')osc.frequency.exponentialRampToValueAtTime(freq*.7,now+duration);
     if(kind==='bell')osc.frequency.exponentialRampToValueAtTime(freq*.995,now+duration);
     gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(level*position.attenuation,now+.015);
+    if(kind==='test')gain.gain.exponentialRampToValueAtTime(level*position.attenuation*.65,now+.35);
     gain.gain.exponentialRampToValueAtTime(.0001,now+duration);
     pan.pan.value=position.pan; osc.connect(gain).connect(pan).connect(this.master);
     // Inharmonic partials give the tower bell and handled crystal a soft body,
@@ -264,6 +279,7 @@ export class ImmersiveAudio {
     for(const node of this.ambient){try{node.stop?.();}catch(_){}try{node.disconnect();}catch(_){}}
     this.lastCue.clear();this.ambient=[];this.waterPan=null;this.waterGain=null;this.sceneNodes=null;
     if(this.master){try{this.master.disconnect();}catch(_){}this.master=null;}
+    if(this.limiter){try{this.limiter.disconnect();}catch(_){}this.limiter=null;}
     // Keep the empty context alive for a subsequent user-gesture enable.
     // Suspending here can race an immediate re-enable; dispose closes it.
   }

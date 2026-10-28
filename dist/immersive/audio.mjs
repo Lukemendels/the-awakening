@@ -62,6 +62,7 @@ export class ImmersiveAudio {
     this.hidden=false;
     this.lastCue=new Map();
     this.enabling=null;
+    this.visibilityTask=Promise.resolve();
   }
   enable() {
     if (this.enabling) return this.enabling;
@@ -87,7 +88,7 @@ export class ImmersiveAudio {
       master.gain.linearRampToValueAtTime((this.narrating?.085:.24)*this.volume,ctx.currentTime+.3);
       master.connect(ctx.destination);
       this.startAmbience();
-      this.scheduleEvent();
+      if(this.hidden)this.setHidden(true);else this.scheduleEvent();
       return true;
     } catch (_) { this.enabled = false; return false; }
   }
@@ -146,11 +147,24 @@ export class ImmersiveAudio {
     this.volume=Math.max(0,Math.min(1,value));
     this.setNarrating(this.narrating);
   }
-  async setHidden(hidden) {
+  setHidden(hidden) {
     this.hidden=Boolean(hidden);
-    if (!this.context || !this.enabled) return;
-    if (hidden) { clearTimeout(this.eventTimer); this.eventTimer=null; try { await this.context.suspend(); } catch (_) {} }
-    else { try { await this.context.resume(); } catch (_) {} if (this.enabled && !this.hidden) this.scheduleEvent(); }
+    if (this.hidden) { clearTimeout(this.eventTimer); this.eventTimer=null; }
+    // Serialize transitions and reconcile against the latest desired state.
+    const reconcile=async()=>{
+      const ctx=this.context;
+      if (!ctx || ctx.state==='closed' || !this.enabled) return;
+      try {
+        if (this.hidden) await ctx.suspend();
+        else await ctx.resume();
+      } catch (_) { return; }
+      if (ctx!==this.context || ctx.state==='closed' || !this.enabled) return;
+      if (this.hidden && ctx.state!=='suspended') await ctx.suspend().catch(()=>{});
+      if (!this.hidden && ctx.state!=='running') await ctx.resume().catch(()=>{});
+      if (this.enabled && !this.hidden && ctx===this.context && ctx.state!=='closed') this.scheduleEvent();
+    };
+    this.visibilityTask=this.visibilityTask.then(reconcile,reconcile);
+    return this.visibilityTask;
   }
   // Sparse, scene-grounded gestures; never scheduled while hidden or muted.
   scheduleEvent() {

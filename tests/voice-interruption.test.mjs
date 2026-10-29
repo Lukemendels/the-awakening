@@ -9,4 +9,3 @@ const api=runInNewContext(`let speechEpoch=0,voicePlayer=null,narrationPending=f
 api.speakOpening('line','ep1-intro-1');api.pauseAndResume();rejectPlay(Object.assign(new Error('interrupted'),{name:'AbortError'}));await Promise.resolve();await Promise.resolve();
 assert.equal(spoken,0,'a stale play rejection must not trigger TTS after pause or resume');
 console.log('Per-clip pause/play promise race passed.');
-

@@ -11,3 +11,7 @@ If you share an adaptation, indicate what you changed and retain relevant notice
 Some artwork was generated with AI systems from Luke Mendelsohn's prompts; additional artwork was generated during game development. The content license applies only to copyright and similar rights the licensor actually holds and can grant. This notice does not assert that AI-only output necessarily creates copyright, or grant rights held by others.
 
 **Three.js 0.186.1** is third-party software, distributed under its own MIT license at `dist/immersive/vendor/THREE-LICENSE.txt`. It is not relicensed by this repository's first-party code or content notices.
+
+## Opening voice playtest
+
+The optional opening recording uses AI voices generated with [ElevenLabs](https://elevenlabs.io) (Amelia, Archer and Victor). It is provided for this noncommercial playtest only and is not licensed under the repository’s MIT code license or CC BY 4.0 content license. Further use requires appropriate rights and terms.

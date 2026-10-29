@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {OpeningTrack} from '../dist/immersive/opening-track.mjs';
 import {OPENING_FULL_TRACK} from '../dist/immersive/opening-media.mjs';
-assert.equal(OPENING_FULL_TRACK.url,null,'absent recording must not be requested');
+assert.equal(OPENING_FULL_TRACK.url,'./voice/ep1-opening-full.mp3');assert.equal(OPENING_FULL_TRACK.provisional,true);
 assert.deepEqual(OPENING_FULL_TRACK.cues,[0,6.088,15.009,19.048,19.801,24.405,30.534]);
 class Media {
  constructor(){this.currentTime=0;this.listeners={};this.paused=true;this.reject=null;}

@@ -1,0 +1,19 @@
+<!doctype html><meta charset="utf-8"><title>Browser timer regression</title>
+<pre id="result">running</pre>
+<script type="module">
+import {CinematicClock} from '../dist/immersive/cinematic.mjs';
+import {OpeningTrack} from '../dist/immersive/opening-track.mjs';
+const out=document.querySelector('#result');
+try {
+  let completed=0;
+  const clock=new CinematicClock({shots:[{duration:20}],onShot(){},onComplete(){completed++}});
+  const media=new EventTarget();
+  media.currentTime=0;media.play=()=>Promise.resolve();media.pause=()=>{};
+  const track=new OpeningTrack({media,cues:[0],onShot(){},onFinish(){},onFailure(){}});
+  clock.start();track.play();
+  await new Promise(resolve=>setTimeout(resolve,80));
+  track.pause();clock.dispose();track.dispose();
+  if(completed!==1)throw new Error('clock did not complete exactly once');
+  out.textContent='PASS';
+} catch(e){out.textContent='FAIL: '+e.stack;}
+</script>

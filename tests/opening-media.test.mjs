@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {readFileSync,existsSync} from 'node:fs';
 import {runInNewContext} from 'node:vm';
 import {OPENING_IMAGES,OPENING_VOICES,openingImage,openingVoice} from '../dist/immersive/opening-media.mjs';
 assert.equal(Object.keys(OPENING_IMAGES).length,5);assert.equal(Object.keys(OPENING_VOICES).length,7);
-for(const id of Object.keys(OPENING_IMAGES))assert.equal(openingImage(id,'existing.webp'),'existing.webp');
+for(const id of Object.keys(OPENING_IMAGES)){const path=openingImage(id,'existing.webp');assert.notEqual(path,'existing.webp');assert.ok(existsSync(new URL('../dist/immersive/'+path,import.meta.url)));}
 for(const id of Object.keys(OPENING_VOICES))assert.equal(openingVoice(id),null);
 const source=readFileSync(new URL('../dist/immersive/opening.mjs',import.meta.url),'utf8');
 const fn=source.slice(source.indexOf('function speakOpening('),source.indexOf('function activateAudioIfWanted()'));

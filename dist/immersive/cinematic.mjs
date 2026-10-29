@@ -1,6 +1,6 @@
 /** One clock for a bounded cinematic; hooks own rendering and speech. */
 export class CinematicClock {
- constructor({shots,onShot,onComplete,canAdvance=()=>true,now=()=>performance.now(),setTimer=setTimeout,clearTimer=clearTimeout}){this.shots=shots;this.onShot=onShot;this.onComplete=onComplete;this.canAdvance=canAdvance;this.waited=0;this.now=now;this.setTimer=setTimer;this.clearTimer=clearTimer;this.index=0;this.mode='watch';this.paused=false;this.ended=false;this.timer=null;this.generation=0;this.remaining=0;}
+ constructor({shots,onShot,onComplete,canAdvance=()=>true,now=()=>performance.now(),setTimer=(fn,ms)=>setTimeout(fn,ms),clearTimer=id=>clearTimeout(id)}){this.shots=shots;this.onShot=onShot;this.onComplete=onComplete;this.canAdvance=canAdvance;this.waited=0;this.now=now;this.setTimer=setTimer;this.clearTimer=clearTimer;this.index=0;this.mode='watch';this.paused=false;this.ended=false;this.timer=null;this.generation=0;this.remaining=0;}
  start(){this.show(0);}
  cancelTimer(){this.generation++;if(this.timer!==null)this.clearTimer(this.timer);this.timer=null;}
  show(index){if(this.ended)return;this.cancelTimer();this.index=Math.max(0,Math.min(this.shots.length-1,index));this.remaining=this.shots[this.index].duration;this.waited=0;this.onShot(this.index,this.shots[this.index]);this.schedule();}

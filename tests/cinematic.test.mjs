@@ -1,0 +1,9 @@
+import assert from 'node:assert/strict';
+import {CinematicClock} from '../dist/immersive/cinematic.mjs';
+let now=0,id=0,queue=new Map(),shown=[],complete=0;
+const clock=new CinematicClock({shots:[{duration:1000},{duration:2000}],now:()=>now,setTimer:(f,delay)=>{queue.set(++id,{f,at:now+delay});return id},clearTimer:key=>queue.delete(key),onShot:i=>shown.push(i),onComplete:()=>complete++});
+const advance=ms=>{now+=ms;for(const [key,item] of [...queue])if(item.at<=now){queue.delete(key);item.f()}};
+clock.start();assert.deepEqual(shown,[0]);advance(500);clock.pause();advance(5000);assert.deepEqual(shown,[0]);clock.play();advance(499);assert.deepEqual(shown,[0]);advance(1);assert.deepEqual(shown,[0,1]);
+clock.setMode('read');advance(5000);assert.equal(complete,0);clock.back();assert.deepEqual(shown,[0,1,0]);clock.next();clock.next();clock.next();assert.equal(complete,1,'completion only once');assert.equal(queue.size,0);
+let stale,fin=0;const c=new CinematicClock({shots:[{duration:1}],onShot:()=>{},onComplete:()=>fin++,now:()=>0,setTimer:f=>{stale=f;return 1},clearTimer:()=>{}});c.start();c.dispose();stale();assert.equal(fin,0,'stale timer cannot complete disposed player');
+console.log('Cinematic clock pause, read mode, navigation, stale callbacks and exactly-once completion passed.');

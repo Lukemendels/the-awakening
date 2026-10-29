@@ -13,6 +13,7 @@ class Target {
 const win=new Target(),view=new Target(),stick=new Target(),knob=new Target(),body={};globalThis.window=win;globalThis.document={body};
 let input={forward:0,strafe:0},looks=[],enabled=true;
 const controls=bindControls({view,stick,knob,onInput:v=>input=v,onLook:(...v)=>looks.push(v),enabled:()=>enabled});
+stick.dispatch('pointerdown',{pointerId:8,clientX:52,clientY:50});assert.deepEqual(input,{forward:0,strafe:0},'small radial movement stays in dead zone');stick.dispatch('pointerup',{pointerId:8});
 // Independent simultaneous pointers: a drag on the view does not disturb movement.
 stick.dispatch('pointerdown',{pointerId:10,clientX:50,clientY:12});assert.ok(input.forward>.99);
 view.dispatch('pointerdown',{pointerId:20,clientX:20,clientY:20});view.dispatch('pointermove',{pointerId:20,clientX:35,clientY:30});assert.equal(looks.length,1);assert.ok(input.forward>.99);

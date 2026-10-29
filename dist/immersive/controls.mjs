@@ -1,14 +1,14 @@
 import {clamp,wrapAngle} from './engine.mjs';
 /** Controls: left joystick = walk/strafe; dragging the view = look. Keyboard is a fallback. */
-export function bindControls({view,stick,knob,onLook,onInput,enabled=()=>true}){
+export function bindControls({view,stick,knob,onLook,onInput,enabled=()=>true,lookSensitivity=()=>1}){
  let motion={forward:0,strafe:0},stickPointer=null,lookPointer=null,lastX=0,lastY=0,keys=new Set();
  const setMotion=()=>{let f=(keys.has('w')||keys.has('arrowup')?1:0)-(keys.has('s')||keys.has('arrowdown')?1:0),s=(keys.has('d')?1:0)-(keys.has('a')?1:0);onInput({forward:clamp(motion.forward+f,-1,1),strafe:clamp(motion.strafe+s,-1,1)});};
- const joystick=e=>{const r=stick.getBoundingClientRect(),radius=Math.min(r.width,r.height)*.38,dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2),len=Math.hypot(dx,dy),factor=len>radius?radius/len:1;motion={strafe:dx*factor/radius,forward:-dy*factor/radius};knob.style.transform=`translate(${dx*factor}px,${dy*factor}px)`;setMotion();};
+ const joystick=e=>{const r=stick.getBoundingClientRect(),radius=Math.min(r.width,r.height)*.38,dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2),len=Math.hypot(dx,dy),factor=len>radius?radius/len:1;const magnitude=Math.min(1,len/radius),scaled=clamp((magnitude-.12)/.88,0,1),unit=len||1;motion={strafe:dx/unit*scaled,forward:-dy/unit*scaled};knob.style.transform=`translate(${dx*factor}px,${dy*factor}px)`;setMotion();};
  function downStick(e){if(!enabled()||stickPointer!==null)return;stickPointer=e.pointerId;stick.setPointerCapture(e.pointerId);joystick(e);e.preventDefault();}
  function moveStick(e){if(e.pointerId===stickPointer){joystick(e);e.preventDefault();}}
  function upStick(e){if(e.pointerId!==stickPointer)return;stickPointer=null;motion={forward:0,strafe:0};knob.style.transform='translate(0,0)';setMotion();}
  function downLook(e){if(!enabled()||lookPointer!==null)return;lookPointer=e.pointerId;lastX=e.clientX;lastY=e.clientY;view.setPointerCapture(e.pointerId);}
- function moveLook(e){if(e.pointerId!==lookPointer)return;const delta=e.clientX-lastX,vertical=e.clientY-lastY;lastX=e.clientX;lastY=e.clientY;onLook(delta*.006,vertical*.004);e.preventDefault();}
+ function moveLook(e){if(e.pointerId!==lookPointer)return;const delta=e.clientX-lastX,vertical=e.clientY-lastY;lastX=e.clientX;lastY=e.clientY;const sensitivity=clamp(Number(lookSensitivity())||1,.5,1.5);onLook(delta*.0045*sensitivity,vertical*.003*sensitivity);e.preventDefault();}
  function upLook(e){if(e.pointerId===lookPointer)lookPointer=null;}
  function key(e,down){if(down&&!enabled())return;if(down&&e.target!==document.body&&e.target!==view)return;let k=e.key.toLowerCase();if(!['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].includes(k))return;if(down)keys.add(k);else keys.delete(k);if(down&&k==='arrowleft')onLook(-.12);if(down&&k==='arrowright')onLook(.12);setMotion();e.preventDefault();}
  const kd=e=>key(e,true),ku=e=>key(e,false),blur=()=>{const sp=stickPointer,lp=lookPointer;stickPointer=null;lookPointer=null;try{if(sp!==null&&stick.hasPointerCapture(sp))stick.releasePointerCapture(sp);}catch{}try{if(lp!==null&&view.hasPointerCapture(lp))view.releasePointerCapture(lp);}catch{}keys.clear();motion={forward:0,strafe:0};knob.style.transform='translate(0,0)';setMotion();};

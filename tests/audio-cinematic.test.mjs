@@ -12,7 +12,7 @@ function harness(){
   const state={sound:true,narration:true};
   const window={speechSynthesis:{cancel(){},speak(){}}};
   class SpeechSynthesisUtterance {constructor(text){this.text=text;}}
-  const api=runInNewContext(`${functions}\n({speak,stopSpeech,playCinematic})`,{audio,state,window,SpeechSynthesisUtterance});
+  const api=runInNewContext(`${functions}\n({speak,stopSpeech,playCinematic})`,{audio,state,window,SpeechSynthesisUtterance,setTimeout:()=>1,clearTimeout:()=>{}});
   return {api,audio,cues,unlock};
 }
 {

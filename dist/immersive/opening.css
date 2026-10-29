@@ -22,7 +22,7 @@
 
 #screen{overflow-x:hidden}.scene{overflow:hidden}
 
-.top-actions{display:flex;gap:.4rem;pointer-events:auto}.top-actions [hidden]{display:none}.arc-feedback{border-left:3px solid #e5c87f;padding-left:.8rem;color:#f7e7c3}.arc-evidence{color:#c8dddd;line-height:1.45}.arc-choices{display:flex;flex-wrap:wrap;gap:.45rem;margin:.7rem 0}.arc-choices button{background:#173c4b;color:#f6e6c2}.arc-note{font-size:.82rem;color:#b8d0d1}
+.top-actions{display:flex;align-items:flex-start;gap:.4rem;pointer-events:auto}.top-actions [hidden]{display:none}.arc-feedback{border-left:3px solid #e5c87f;padding-left:.8rem;color:#f7e7c3}.arc-evidence{color:#c8dddd;line-height:1.45}.arc-choices{display:flex;flex-wrap:wrap;gap:.45rem;margin:.7rem 0}.arc-choices button{background:#173c4b;color:#f6e6c2}.arc-note{font-size:.82rem;color:#b8d0d1}
 
 @media (orientation:landscape){.arc35-visual svg{max-height:100px;width:100%}.arc35-visual [role=group]{max-height:100px}.arc67-visual svg{max-height:95px}.arc67-visual h3{margin:.25rem 0}.arc67-visual p{margin:.3rem 0}}
 
@@ -31,3 +31,14 @@
 @media (orientation:landscape){.arc810-visual svg,.arc1113-visual svg{max-height:100px!important;width:100%}.arc810-visual h3{margin:.25rem 0}.arc810-visual p,.arc1113-visual p{margin:.3rem 0}}
 @media (orientation:landscape){.arc810-visual,.arc1113-visual{padding:.35rem!important;margin:.3rem 0!important}.arc1113-visual svg{max-height:72px!important}.arc1113-visual [role=group]{padding:.35rem!important}.arc810-visual button,.arc1113-visual button{margin:.15rem!important}}
 .final-trio{position:absolute;left:max(.8rem,env(safe-area-inset-left));top:8%;bottom:8%;width:40%;display:flex;align-items:center;gap:.3rem;pointer-events:none}.final-trio img{width:32%;height:82%;object-fit:cover;object-position:center 18%;border:1px solid #e4c58488;border-radius:.5rem;box-shadow:0 .3rem 1rem #0008}@media(orientation:portrait){.final-trio{top:1rem;bottom:auto;width:90%;height:28%;}.final-trio img{height:100%}}
+
+/* The opening uses individually authored framing with captions above controls. */
+.opening-film{position:relative;isolation:isolate;width:100%;height:100dvh;overflow:hidden;background:#061724}
+.opening-film-image{position:absolute;inset:0;z-index:-2;background-size:cover;background-repeat:no-repeat;animation:opening-shot linear both;transform-origin:center}
+.opening-film:after{content:'';position:absolute;inset:0;z-index:-1;background:linear-gradient(transparent 24%,#03111a40 48%,#03111af5 100%)}
+@keyframes opening-shot{from{transform:scale(var(--shot-from))}to{transform:scale(var(--shot-to))}}
+.opening-film-panel{position:absolute;left:0;right:0;bottom:0;padding:.6rem max(1rem,env(safe-area-inset-right)) max(.6rem,env(safe-area-inset-bottom)) max(1rem,env(safe-area-inset-left));color:#fff2d2}
+.opening-film-panel h2{font:clamp(1.15rem,4vh,1.8rem)/1.1 Georgia,serif;margin:.15rem 0}.opening-film-panel p{margin:.2rem 0;text-shadow:0 1px 5px #000}.opening-caption{font-size:clamp(.9rem,3.3vh,1.1rem);max-width:70rem;line-height:1.35}
+.film-controls{display:flex;gap:.35rem;flex-wrap:wrap;margin-top:.45rem}.film-controls button{min-height:40px;padding:.35rem .65rem;font-size:.85rem}.opening-film-panel .note{font-size:.75rem}
+#clue-status{font-size:.75rem;color:#d1e7e7}
+@media(prefers-reduced-motion:reduce){.opening-film-image{animation:none;transform:scale(var(--shot-from))}}

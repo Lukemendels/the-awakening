@@ -31,9 +31,10 @@ export function castRay(map,x,y,angle,maxDistance=32){
   }return null;
 }
 function crossesBox(x,y,dx,dy,box){let lo=0,hi=1;for(const [p,d,min,max] of [[x,dx,box.x0,box.x1],[y,dy,box.y0,box.y1]]){if(Math.abs(d)<1e-9){if(p<min||p>max)return false;}else{let a=(min-p)/d,b=(max-p)/d;if(a>b)[a,b]=[b,a];lo=Math.max(lo,a);hi=Math.min(hi,b);if(lo>hi)return false;}}return hi>=0&&lo<=1;}
-export function nearestReachable(map,player,objects,maxDistance=1.35,viewAngle=.72,obstacles=[]){
- let best=null;for(const obj of objects){const dx=obj.x-player.x,dy=obj.y-player.y,d=Math.hypot(dx,dy),rel=Math.abs(wrapAngle(Math.atan2(dy,dx)-player.angle));
+export function nearestReachable(map,player,objects,maxDistance=1.35,viewAngle=.72,obstacles=[],preferredId=null){
+ let best=null,preferred=null;for(const obj of objects){const dx=obj.x-player.x,dy=obj.y-player.y,d=Math.hypot(dx,dy),rel=Math.abs(wrapAngle(Math.atan2(dy,dx)-player.angle));
   if(d>maxDistance||rel>viewAngle)continue;if(obstacles.some(box=>box.id!==obj.id&&crossesBox(player.x,player.y,dx,dy,box)))continue;const hit=castRay(map,player.x,player.y,Math.atan2(dy,dx),d);if(hit&&hit.distance<d-.05)continue;
-  if(!best||d<best.distance)best={...obj,distance:d};
- }return best;
+  const candidate={...obj,distance:d,alignment:rel};if(obj.id===preferredId)preferred=candidate;
+  if(!best||rel<best.alignment-1e-6||(Math.abs(rel-best.alignment)<1e-6&&d<best.distance))best=candidate;
+ }return preferred&&preferred.alignment<=best.alignment+.06?preferred:best;
 }

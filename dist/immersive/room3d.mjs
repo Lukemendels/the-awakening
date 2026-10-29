@@ -2,11 +2,11 @@ import * as T from './vendor/three.module.js';
 /** An authored, walkable 3D shop. Coordinates match engine.mjs's collision map. */
 export class Room3D {
  constructor(canvas){
-  this.canvas=canvas;this.renderer=new T.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});this.renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.3));this.renderer.outputColorSpace=T.SRGBColorSpace;this.renderer.toneMapping=T.ACESFilmicToneMapping;this.renderer.toneMappingExposure=1.05;
-  this.scene=new T.Scene();this.scene.background=new T.Color(0x102b36);this.scene.fog=new T.Fog(0x1c3033,8,22);this.camera=new T.PerspectiveCamera(68,1,.05,40);this.scene.add(new T.HemisphereLight(0x8ccddd,0x342014,1.25));
+  this.canvas=canvas;this.renderer=new T.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});this.renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.3));this.renderer.outputColorSpace=T.SRGBColorSpace;this.renderer.toneMapping=T.ACESFilmicToneMapping;this.renderer.toneMappingExposure=.95;
+  this.scene=new T.Scene();this.scene.background=new T.Color(0x102b36);this.scene.fog=new T.Fog(0x1c3033,8,22);this.camera=new T.PerspectiveCamera(68,1,.05,40);this.scene.add(new T.HemisphereLight(0x8ccddd,0x342014,.95));
   const ambient=new T.AmbientLight(0xb5a38a,.3);this.scene.add(ambient);
-  const sun=new T.DirectionalLight(0xffdc9d,2.1);sun.position.set(8,4,3);this.scene.add(sun);
-  const lamp=new T.PointLight(0xffbb59,32,6,2);lamp.position.set(7.05,1.35,1.58);this.scene.add(lamp);
+  const sun=new T.DirectionalLight(0xffdc9d,1.4);sun.position.set(8,4,3);this.scene.add(sun);
+  const lamp=new T.PointLight(0xffbb59,10,6,2);lamp.position.set(7.05,1.35,1.58);this.scene.add(lamp);
   this.shop=new T.Group();this.scene.add(this.shop);
   const wood=new T.MeshStandardMaterial({color:0x563925,roughness:.84}), dark=new T.MeshStandardMaterial({color:0x2d201a,roughness:.9}),plaster=new T.MeshStandardMaterial({color:0x9b8a6e,roughness:1}),gold=new T.MeshStandardMaterial({color:0xc49a55,metalness:.55,roughness:.42}),paper=new T.MeshStandardMaterial({color:0xd5c5a0,roughness:.9}),crystal=new T.MeshPhysicalMaterial({color:0x80d6da,metalness:.05,roughness:.18,transparent:true,opacity:.72,emissive:0x1c6872,emissiveIntensity:.28});
   const box=(x,y,z,w,h,d,mat)=>{const m=new T.Mesh(new T.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);this.shop.add(m);return m;};
@@ -16,6 +16,13 @@ export class Room3D {
   for(let x=1.2;x<8;x+=.65){box(x,.01,4,.025,.01,6,dark);box(x,1.5,1.04,.08,3,.06,wood);box(x,1.5,6.96,.08,3,.06,wood);}
   for(let z=1.2;z<7;z+=1){box(1.04,1.5,z,.06,3,.08,wood);box(7.96,1.5,z,.06,3,.08,wood);}
   for(let z of [1.05,6.95])for(let y of [.18,2.85])box(4.5,y,z,7,.12,.1,wood);
+  // Lightweight contact grounding, no shadow maps or extra render passes.
+  const contact=new T.MeshBasicMaterial({color:0x10151a,transparent:true,opacity:.25,depthWrite:false});
+  for(const [x,z,w,d] of [[2.1,1.5,1.45,.7],[1.5,4.5,1.3,1],[7.3,4.5,1,1.2],[6.55,1.58,1.7,1]]){const shade=new T.Mesh(new T.PlaneGeometry(w,d),contact);shade.rotation.x=-Math.PI/2;shade.position.set(x,.018,z);this.shop.add(shade);}
+  // Shop exit is visible across the room; a warm panel frames the way out.
+  box(4.5,1.15,6.96,1.2,2.3,.10,dark);box(4.5,1.13,6.87,1.02,2.16,.08,wood);
+  for(const x of [4.04,4.96])box(x,1.15,6.80,.08,2.3,.08,gold);
+  box(4.5,2.28,6.80,1.05,.08,.08,gold);box(4.84,1.05,6.77,.07,.12,.07,gold);
   // Large east-facing canal window, with still used as scenery rather than room geometry.
   const tex=new T.TextureLoader().load('../assets/6_Night Canal.webp');tex.colorSpace=T.SRGBColorSpace;
   const windowMat=new T.MeshBasicMaterial({map:tex});const windowPlane=new T.Mesh(new T.PlaneGeometry(2.2,1.8),windowMat);windowPlane.position.set(7.96,1.8,3.4);windowPlane.rotation.y=-Math.PI/2;this.shop.add(windowPlane);
@@ -33,7 +40,7 @@ export class Room3D {
   // Hanging lamps and decorative crystal rhythm establish a lived-in shop.
   for(const [x,z] of [[3,3.5],[6,5.8]]){box(x,2.5,z,.025,1,.025,gold);box(x,1.95,z,.35,.08,.35,gold);gem(x,2.12,z,.6);}
  }
- render(player){const rect=this.canvas.getBoundingClientRect(),w=Math.max(1,Math.floor(rect.width)),h=Math.max(1,Math.floor(rect.height));if(this.w!==w||this.h!==h){this.w=w;this.h=h;this.renderer.setSize(w,h,false);this.camera.aspect=w/h;this.camera.fov=Math.min(110,2*Math.atan(Math.tan(70*Math.PI/360)/(w/h))*180/Math.PI);this.camera.updateProjectionMatrix();}this.camera.position.set(player.x,1.55,player.y);this.camera.lookAt(player.x+Math.cos(player.angle),1.55+Math.tan(player.pitch||0),player.y+Math.sin(player.angle));this.specimen.visible=Boolean(player.flags?.placed);if(this.specimen.visible)this.specimen.material.color.set(player.flags.specimen==='approved'?0xc7e8ea:0x80d6da);this.camera.updateMatrixWorld();this.renderer.render(this.scene,this.camera);}
+ render(player){const rect=this.canvas.getBoundingClientRect(),w=Math.max(1,Math.floor(rect.width)),h=Math.max(1,Math.floor(rect.height));if(this.w!==w||this.h!==h){this.w=w;this.h=h;this.renderer.setSize(w,h,false);this.camera.aspect=w/h;this.camera.fov=Math.min(110,2*Math.atan(Math.tan(70*Math.PI/360)/(w/h))*180/Math.PI);this.camera.updateProjectionMatrix();}this.camera.position.set(player.x,1.55,player.y);this.camera.lookAt(player.x+Math.cos(player.angle),1.55+Math.tan(player.pitch||0),player.y+Math.sin(player.angle));this.specimen.visible=Boolean(player.flags?.placed);if(this.specimen.visible){this.specimen.material.color.set(player.flags.specimen==='approved'?0xc7e8ea:0x80d6da);const dx=player.x-6.55,dz=player.y-1.58,view=-(dx*.5)/(Math.hypot(dx,dz)*.5||1),backlit=Math.max(0,Math.min(1,(view-.15)/.6));this.specimen.material.emissiveIntensity=.25+backlit*.55;}this.camera.updateMatrixWorld();this.renderer.render(this.scene,this.camera);}
  get interactionHalfAngle(){return Math.atan(Math.tan(this.camera.fov*Math.PI/360)*this.camera.aspect)*.9;}
  dispose(){this.renderer.dispose();}
 }

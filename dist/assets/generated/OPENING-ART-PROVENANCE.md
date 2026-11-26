@@ -19,3 +19,5 @@ The interactive light bench uses a photographic background plate and separate tr
 The walkable shop uses eight WebP textures generated with OpenAI image generation. `shop-survey-wall` and `shop-entry-wall` depict the two end walls. `shop-study-wall` depicts the notebook wall. `shop-field-notes` and `shop-runner` dress the journal and woven rug. `shop-canal-view` supplies the distant scenery beyond the window. `shop-walnut` and `shop-limewash` supply surface detail for the modeled interior. A small reflection map samples the four room views. The engine lights the modeled furniture, brasswork, and specimens, with the playable quartz artwork supplying the visible inclusions.
 
 `shop-interior-study.webp` is a frame captured from the walkable shop during playtesting.
+
+The canal seen through the playable window uses `shop-canal-panorama.webp`, generated with OpenAI image generation using the earlier canal view as a reference. The panoramic texture wraps around the shop, with water below the sill and sky above the transom.

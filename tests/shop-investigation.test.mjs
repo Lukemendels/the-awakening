@@ -39,9 +39,18 @@ test('dragging the lamp by its visible travel reproduces the sketched shadow',as
   const {lampPosition,dragLamp,propAt}=await import('../dist/immersive/shop/optics.mjs');
   const s=fresh(),foot=lampPosition(s.lamp),target=lampPosition(sunsetAngle);
   assert.equal(propAt(foot.x,foot.y-65,s),'lamp');
-  assert.equal(propAt(450,215,s),'turn');
+  assert.equal(propAt(450,215,s),null);
+  assert.equal(propAt(450,215,{...s,drawerStone:true}),'turn');
   assert.equal(propAt(870,20,s),null);
   assert.equal(dragLamp(s.lamp,target.y-foot.y),sunsetAngle);
   assert.equal(dragLamp(0,999),45);
   assert.equal(dragLamp(0,-999),-45);
+});
+
+test('a saved drawer sample can complete the investigation without the shelf',()=>{
+  const state=restore({...fresh(),drawerStone:true,lamp:sunsetAngle,turn:crystalAngle});
+  assert.equal(expose(state),false);
+  state.sketch=true;
+  assert.equal(expose(state),true);
+  assert.deepEqual(restore(state),state);
 });

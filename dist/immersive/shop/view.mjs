@@ -36,7 +36,7 @@ export class ShopView {
     };
   }
   start(pose){
-    this.running=true;this.path=[];this.arrival=null;
+    this.stride=0;this.running=true;this.path=[];this.arrival=null;
     this.pos=[4.5,5.75];this.yaw=-Math.PI/2;this.pitch=-.13;
     if(pose && [pose.x,pose.z,pose.yaw,pose.pitch].every(Number.isFinite) && walkable(pose.x,pose.z)){
       this.pos=[pose.x,pose.z];this.yaw=wrapAngle(pose.yaw);this.pitch=clamp(pose.pitch,-1,1);
@@ -85,6 +85,7 @@ export class ShopView {
       camera.fov=Math.min(62,T.MathUtils.radToDeg(2*Math.atan(Math.tan(maxHorizontalFov/2)/aspect)));
       this.room.camera.updateProjectionMatrix();
     }
+    const [fromX,fromZ]=this.pos;
     const moving=Boolean(this.arrival);
     if(!moving)this.walk(dt);
     let remaining=this.reduce.matches?Infinity:dt*2.8;
@@ -111,11 +112,20 @@ export class ShopView {
       this.audio.setListener(x,z,this.yaw);
       this.lastX=x;this.lastZ=z;this.lastYaw=this.yaw;
     }
+    const traveled=Math.hypot(x-fromX,z-fromZ);
+    if(traveled>.001 && !(moving&&this.reduce.matches)){
+      this.stride+=traveled;
+      if(this.stride>=.70){
+        this.stride%=.70;
+        const onRunner=Math.abs(x-4.38)<.605&&Math.abs(z-4.68)<1.59;
+        this.audio.cue(onRunner?'rug-step':'floor-step',x,z);
+      }
+    }else this.stride=.34;
     camera.updateMatrixWorld();
     for(const [b,s] of this.pins){
       const p=this.projected.set(...s.point).project(camera);
       const px=(p.x+1)*w/2,py=(1-p.y)*h/2;
-      b.hidden=moving||p.z>1||p.z< -1||px<22||px>w-22||py<62||py>h-65;
+      b.hidden=moving||Math.hypot(x-s.point[0],z-s.point[2])>2.65||p.z>1||p.z< -1||px<22||px>w-22||py<62||py>h-65;
       if(!b.hidden){b.style.left=px+'px';b.style.top=py+'px';}
     }
     this.room.renderer.render(this.room.scene,camera);

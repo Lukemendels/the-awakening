@@ -1,6 +1,6 @@
 import {ShopView} from './view.mjs';
 import {stations} from './walk.mjs';
-import {fresh,restore,expose,projection,sunsetAngle} from './investigation.mjs';
+import {fresh,restore,hasStone,expose,projection,sunsetAngle} from './investigation.mjs';
 import {illustration,loadBenchArt,propAt,dragLamp} from './optics.mjs';
 import {loadSave,writeSave} from '../save.mjs';
 import {CinematicClock} from '../cinematic.mjs';
@@ -20,18 +20,14 @@ if(!journey.shopOpening && !journey.flags.solved){
 }
 const audio=new ImmersiveAudio();
 audio.setEmitter('water',7.85,3.4);
+let soundWanted=journey.shopSound??true;
 let voice=Boolean(journey.narration),view,film,pulseFrame,memoryFrame,pausedByPlayer=false;
 function save(){
   const current=loadSave(storage);
   if(view)state.pose=view.pose();
-  current.shopOpening=state;
+  current.shopOpening=state;current.shopSound=soundWanted;current.sound=soundWanted;current.narration=voice;
   if(!current.arc&&!current.nextArc&&!current.finalArc)current.scene='room';
   $('storage-error').hidden=writeSave(storage,current);
-}
-function task(){
-  if(!state.sketch)return 'Find Kaelan’s temple sketch in his notebook.';
-  if(!state.tray)return 'Bring the shipment samples to the light bench.';
-  return 'Can the dismissed stone put light on the spot Kaelan sketched?';
 }
 function button(text,action,group=content){
   const b=document.createElement('button');b.type='button';b.textContent=text;b.onclick=action;group.append(b);return b;
@@ -45,47 +41,60 @@ function begin(){
   cancelAnimationFrame(memoryFrame);$('arrival').hidden=true;
   if(state.phase==='film'){playFilm(Math.max(2,state.shot));return;}
   if(state.phase==='dock'){dock();return;}
-  $('room').hidden=false;$('guide').textContent=task();
-  try{view=new ShopView($('world'),$('markers'),inspect,text=>$('guide').textContent=text||task(),audio);view.start(journey.shopOpening?.pose);}
-  catch{$('move-pad').hidden=$('look-pad').hidden=true;$('guide').textContent='Use the destination buttons to investigate the shop.';view=null;}
+  $('room').hidden=false;$('guide').textContent='';
+  try{view=new ShopView($('world'),$('markers'),inspect,text=>$('guide').textContent=text,audio);view.start(journey.shopOpening?.pose);}
+  catch{$('destinations').hidden=false;$('move-pad').hidden=$('look-pad').hidden=true;$('guide').textContent='Use the destination buttons to investigate the shop.';view=null;}
   save();if(state.active)inspect(state.active);
 }
 function close(){
-  dialog.close();state.active=null;save();$('guide').textContent=task();
+  dialog.close();state.active=null;save();$('guide').textContent='';
 }
 function inspect(id){
   if(state.phase!=='shop')return;
-  view?.pause();state.active=id;save();$('heading').textContent=({bench:'Light bench',notebook:'Temple notebook',shelf:'Specimen shelf',journal:'Evidence journal'})[id];
+  view?.pause();state.active=id;save();$('heading').textContent=({drawer:'Grading drawer',bench:'Light bench',notebook:'Temple notebook',shelf:'Specimen shelf',journal:'Evidence journal'})[id];
   $('panel-label').textContent=id==='journal'?'Kaelan’s notes':'Outer ring · Crystal shop';
   content.className='';content.replaceChildren();if(!dialog.open)dialog.showModal();dialog.scrollTop=0;
   if(id==='bench'){bench();return;}
   if(id==='notebook'){
     content.append(illustration(state,'sketch',1));
     paragraph('I traced the stand’s long shadow before the surge. The little circle marks where its light fell.');
-    button(state.sketch?'Return to shop':'Bring the sketch',()=>{state.sketch=true;close();});
+    button(state.sketch?'Return to shop':'Bring the sketch',()=>{audio.cue('paper');state.sketch=true;close();});
+  }else if(id==='drawer'){
+    audio.cue('wood',7.03,4.52);
+    paragraph('A folded return slip reads “Outer ring, lot VII. Rejected for feathering.” In the fold lies a sliver of quartz. A fine white plume runs through it.');
+    button(hasStone(state)?'File the return slip':'Take the rejected sliver',()=>{
+      state.drawerStone=true;audio.cue('paper');close();
+    });
   }else if(id==='shelf'){
     paragraph('A milky wisp hangs inside the rejected stone. A second specimen from the same shipment is clear. The merchant house graded it premium.');
-    button(state.tray?'Return to shop':'Bring the specimens',()=>{state.tray=true;close();});
+    button(state.tray?'Return to shop':state.drawerStone?'Bring the comparison samples':'Bring the specimens',()=>{state.tray=true;audio.cue('stone-seat');close();});
   }else{
     if(state.sketch)content.append(illustration(state,'sketch',1));
     if(state.clearSeen)paragraph('Approved specimen · The light spreads into a broad patch.');
-    paragraph(task());
+    if(state.drawerStone)paragraph('Lot VII · The return slip identifies feathering as the reason for rejection.');
+    if(state.tray)paragraph('Shipment samples · The rejected quartz has a white plume. The premium sample is clear.');
+    if(!state.sketch&&!hasStone(state))paragraph('At the temple, the light settled on brass just before the crystal broke.');
+    const narration=button('Read dialogue aloud',()=>{voice=!voice;if(!voice)stopVoice();narration.setAttribute('aria-pressed',String(voice));save();});
+    narration.setAttribute('aria-pressed',String(voice));
   }
 }
 function bench(){
-  if(!state.tray){paragraph('A sliding lamp and an empty brass rest. Both specimens are still on the shelf.');return;}
+  const loaded=hasStone(state);
   const evidence=document.createElement('div'),tools=document.createElement('div');
   content.className='workbench';tools.className='bench-tools';content.append(evidence,tools);
   const picture=document.createElement('div'),surface=document.createElement('canvas');
   picture.append(surface);evidence.append(picture);
   const feedback=paragraph('',evidence,'feedback');feedback.setAttribute('role','status');
   const stones=document.createElement('div');stones.className='controls specimens';tools.append(stones);
-  const buttons=['condemned','approved'].map(key=>button(key==='approved'?'Approved':'Condemned',()=>{
+  const samples=state.tray?['condemned','approved']:loaded?['condemned']:[];
+  const buttons=samples.map(key=>button(key==='approved'?'Approved':'Condemned',()=>{
     state.specimen=key;audio.cue('stone-seat');refresh();
   },stones));
   const hints=['Look at the long shadow Kaelan drew on the page.','Drag the brass lamp until the real shadow covers the pencil hatching.','Hold the lamp there. Roll the condemned stone until both streaks land inside the circle.'];
-  const hint=paragraph(state.hints?hints[state.hints-1]:'',evidence,'hint');hint.setAttribute('role','status');
-  button('Hint',()=>{state.hints=Math.min(3,state.hints+1);hint.textContent=hints[state.hints-1];save();},tools);
+  const hint=paragraph('',evidence,'hint');hint.setAttribute('role','status');
+  button('Hint',()=>{if(!loaded)hint.textContent='The rest has a notch for a specimen.';
+    else if(!state.sketch)hint.textContent='Kaelan drew the shadow he saw at the temple.';
+    else{state.hints=Math.min(3,state.hints+1);hint.textContent=hints[state.hints-1];save();}},tools);
   const fine=document.createElement('details'),summary=document.createElement('summary');
   summary.textContent='Fine controls';fine.append(summary);tools.append(fine);
   const adjustments=document.createElement('div');adjustments.className='adjustments';fine.append(adjustments);
@@ -99,6 +108,7 @@ function bench(){
     refresh();
   }
   for(const [key,label,limit] of [['lamp','Slide lamp',45],['turn','Tilt stone',60]]){
+    if(key==='turn'&&!loaded)continue;
     const row=document.createElement('div'),name=document.createElement('label'),input=document.createElement('input');
     row.className='adjust-row';input.type='range';input.min=-limit;input.max=limit;input.value=state[key];inputs[key]=input;
     name.textContent=label;name.append(input);
@@ -129,11 +139,12 @@ function bench(){
     illustration(state,'bench',0,surface);
     buttons.forEach((b,i)=>b.setAttribute('aria-pressed',String(i===Number(state.specimen==='approved'))));
     const optics=projection(state);
-    feedback.textContent=!state.sketch?'Get the notebook to place the temple sketch beneath the stone.':
+    feedback.textContent=!loaded?'The lamp casts a long shadow from the empty rest.':
       optics.diffuse?'The clear stone throws a broad patch of light.':
-      !optics.visible?'Drag the lamp to match the stand’s shadow to Kaelan’s sketch.':
-      Math.abs(state.lamp-sunsetAngle)>5?'The shadow still falls outside the pencil marks.':
-      'The shadows line up. Roll the stone and watch the light.';
+      !optics.visible?'A pale feather hangs inside the quartz.':
+      !state.sketch?'Two fine streaks fall across the bare bench.':
+      Math.abs(state.lamp-sunsetAngle)>5?'Two fine streaks cross the page.':
+      'The stand’s shadow lies over the pencil marks.';
   }
   refresh();
 }
@@ -149,7 +160,7 @@ const shots=[
 ];
 function stopVoice(){window.speechSynthesis?.cancel();}
 function speak(text){
-  if(!voice||!window.speechSynthesis||document.hidden)return;
+  if(!audio.enabled||!voice||!window.speechSynthesis||document.hidden)return;
   const u=new SpeechSynthesisUtterance(text);u.rate=.95;window.speechSynthesis.speak(u);
 }
 function playFilm(index){
@@ -207,20 +218,28 @@ window.addEventListener('pagehide',()=>{if(state.phase==='shop'&&view)save();fil
 window.addEventListener('pageshow',e=>{if(e.persisted)location.reload();});
 const soundButton=$('voice');
 function soundLabel(){
-  soundButton.textContent=voice?'Sound & voice on':'Sound & voice off';
-  soundButton.setAttribute('aria-pressed',String(voice));
+  soundButton.textContent=audio.enabled?'Sound on':'Sound off';
+  soundButton.setAttribute('aria-pressed',String(audio.enabled));
 }
+async function unlockSound(){
+  if(soundWanted&&!audio.enabled){await audio.enable();soundLabel();}
+}
+// Returning players can resume directly in the room. Unlock on their first
+// interaction just as entering the shop unlocks sound for a new player.
+for(const event of ['pointerup','keydown'])document.addEventListener(event,e=>{
+  if(e.target!==soundButton && e.target!==$('enter'))unlockSound();
+},true);
 soundLabel();
 soundButton.onclick=async()=>{
   soundButton.disabled=true;
-  if(voice){audio.mute();voice=false;stopVoice();}
-  else{await audio.enable();voice=true;}
-  soundLabel();soundButton.disabled=false;
+  if(audio.enabled){soundWanted=false;audio.mute();stopVoice();}
+  else{soundWanted=true;await unlockSound();}
+  soundLabel();soundButton.disabled=false;save();
 };
 for(const [id,s] of Object.entries(stations))button(s.label,()=>view?view.go(s.approach,id):inspect(id),$('destinations'));
 $('close').onclick=close;dialog.addEventListener('cancel',e=>{e.preventDefault();close();});
 $('journal').onclick=()=>inspect('journal');
-$('enter').disabled=false;$('enter').onclick=()=>{if(voice)audio.enable();begin();};
+$('enter').disabled=false;$('enter').onclick=()=>{unlockSound();begin();};
 if(state.phase!=='shop'||journey.shopOpening?.phase==='shop')begin();
 else{
   const start=performance.now(),reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;

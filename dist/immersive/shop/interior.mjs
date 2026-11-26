@@ -86,9 +86,13 @@ export class ShopInterior extends RoomRenderer {
 
     photo('survey-wall',4.5,1.55,1,7,3.1,0);
     photo('entry-wall',4.5,1.55,7,7,3.1,halfTurn);
-    // The view sits beyond the reveal. The frame and the skyline pass one
-    // another as the player walks along the glass.
-    photo('canal-view',11.8,1.82,3.45,18,8.5,-rightAngle);
+    // The shop fits inside the sphere, including the full camera collision radius.
+    // A grazing ray through the window still sees sky, quay or water.
+    const panorama=texture('shop-canal-panorama');
+    panorama.wrapS=T.RepeatWrapping;panorama.repeat.x=-1;
+    const canal=new T.Mesh(new T.SphereGeometry(16,64,32),
+      new T.MeshBasicMaterial({map:panorama,side:T.BackSide,toneMapped:false}));
+    canal.position.set(7.9,1.24,3.42);scene.add(canal);
     photo('study-wall',1,1.55,4,6,3.1,rightAngle);
     for(const [z,length] of [[1.48,.96],[5.94,2.12]])box(plaster,8.07,1.55,z,.14,3.1,length);
     box(plaster,8.07,.43,3.42,.14,.86,2.92);box(plaster,8.07,2.99,3.42,.14,.22,2.92);

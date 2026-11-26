@@ -16,8 +16,8 @@
 // All settings are quiet procedural interpretations, not sourced recordings.
 // Numeric episode aliases are accepted so transitions can map directly to story state.
 export const SCENE_SOUND = Object.freeze({
-  shop:     {bed:[73.4,73.8,110], levels:[.09,.045,.025], water:.075, waterCut:520, air:.008, airCut:950, shimmer:246},
-  canal:    {bed:[65.4,65.8,98],  levels:[.060,.030,.015],water:.120, waterCut:760, air:.022, airCut:1500, shimmer:196},
+  shop:     {bed:[73.4,73.8,110], levels:[.025,.012,.008], water:.005, waterCut:360, air:.002, airCut:780, texture:.013, swell:.002, shimmer:246},
+  canal:    {bed:[65.4,65.8,98],  levels:[.034,.016,.009],water:.013, waterCut:470, air:.004, airCut:870, texture:.024, swell:.004, shimmer:196},
   workshop: {bed:[82.4,82.7,123], levels:[.048,.022,.012],water:.032, waterCut:350, air:.010, airCut:700, shimmer:220},
   archive:  {bed:[55,55.3,82.4],  levels:[.032,.014,.007],water:.012, waterCut:280, air:.006, airCut:500, shimmer:165},
   artisan:  {bed:[98,98.3,147],   levels:[.055,.026,.014],water:.040, waterCut:460, air:.009, airCut:850, shimmer:294},
@@ -118,9 +118,9 @@ export class ImmersiveAudio {
     for(let i=0;i<length;i++)textureData[i]=(Math.random()*2-1);
     for(let i=0;i<edge;i++){const f=i/edge;textureData[i]*=f;textureData[length-1-i]*=f;}
     const texture=ctx.createBufferSource(),textureFilter=ctx.createBiquadFilter(),textureGain=ctx.createGain();
-    texture.buffer=textureBuffer;texture.loop=true;textureFilter.type='bandpass';textureFilter.frequency.value=Math.max(750,config.airCut);textureFilter.Q.value=.55;textureGain.gain.value=.35+config.air*5;
+    texture.buffer=textureBuffer;texture.loop=true;textureFilter.type='bandpass';textureFilter.frequency.value=Math.max(750,config.airCut);textureFilter.Q.value=.55;textureGain.gain.value=config.texture??(.35+config.air*5);
     texture.connect(textureFilter).connect(textureGain).connect(this.roomBus);texture.start(now);
-    const textureSwell=ctx.createOscillator(),textureDepth=ctx.createGain();textureSwell.frequency.value=.065;textureDepth.gain.value=.07;textureSwell.connect(textureDepth).connect(textureGain.gain);textureSwell.start(now);
+    const textureSwell=ctx.createOscillator(),textureDepth=ctx.createGain();textureSwell.frequency.value=.065;textureDepth.gain.value=config.swell??.07;textureSwell.connect(textureDepth).connect(textureGain.gain);textureSwell.start(now);
     // Water and air are independent filtered layers, never a recognizable prerecorded sample.
     const noise=ctx.createBufferSource(),waterFilter=ctx.createBiquadFilter(),waterGain=ctx.createGain(),waterPan=ctx.createStereoPanner();
     noise.buffer=buffer;noise.loop=true;waterFilter.type='lowpass';waterFilter.frequency.value=config.waterCut;waterGain.gain.value=config.water*4;
@@ -136,7 +136,7 @@ export class ImmersiveAudio {
     // Positional array resonance: a separate source, not a hidden-answer cue.
     const arrayOsc=ctx.createOscillator(),arrayGain=ctx.createGain(),arrayPan=ctx.createStereoPanner();arrayOsc.type='sine';arrayOsc.frequency.value=config.arrayHz??220;arrayGain.gain.value=(config.array??0)*.4;arrayOsc.connect(arrayGain).connect(arrayPan).connect(this.roomBus);
     noise.start(now);swell.start(now);shimmer.start(now);arrayOsc.start(now);this.waterPan=waterPan;this.waterGain=waterGain;
-    this.sceneNodes={beds,waterFilter,airFilter,airGain,shimmer,woodFilter,woodGain,woodPan,arrayOsc,arrayGain,arrayPan,textureFilter,textureGain};
+    this.sceneNodes={beds,waterFilter,airFilter,airGain,shimmer,woodFilter,woodGain,woodPan,arrayOsc,arrayGain,arrayPan,textureFilter,textureGain,textureDepth};
     this.ambient.push(texture,textureFilter,textureGain,textureSwell,textureDepth,noise,waterFilter,waterGain,waterPan,airFilter,airGain,swell,depth,shimmer,shimmerGain,woodFilter,woodGain,woodPan,arrayOsc,arrayGain,arrayPan);this.updateSpatial();
   }
   setRoomLevel(level){
@@ -148,12 +148,13 @@ export class ImmersiveAudio {
   setScene(id) {
     const key=SCENE_ALIAS[id]||id;if(!Object.hasOwn(SCENE_SOUND,key))return false;
     this.stopCues();
-    if(key!==this.scene)this.scheduleEvent();
-    this.scene=key;const n=this.sceneNodes,ctx=this.context;if(!this.enabled||!n||!ctx)return true;
+    const changed=key!==this.scene;this.scene=key;
+    if(changed)this.scheduleEvent();
+    const n=this.sceneNodes,ctx=this.context;if(!this.enabled||!n||!ctx)return true;
     const c=SCENE_SOUND[key],now=ctx.currentTime;
     const ease=(p,value)=>{p.cancelScheduledValues(now);p.setTargetAtTime(value,now,.45);};
     n.beds.forEach(({osc,gain},i)=>{ease(osc.frequency,c.bed[i]);ease(gain.gain,c.levels[i]*.30);});
-    ease(n.textureFilter.frequency,Math.max(750,c.airCut));ease(n.textureGain.gain,.35+c.air*5);ease(n.waterFilter.frequency,c.waterCut);ease(n.airFilter.frequency,c.airCut);ease(n.airGain.gain,c.air*4);ease(n.shimmer.frequency,c.shimmer);ease(n.woodFilter.frequency,c.woodCut??180);ease(n.arrayOsc.frequency,c.arrayHz??220);
+    ease(n.textureFilter.frequency,Math.max(750,c.airCut));ease(n.textureGain.gain,c.texture??(.35+c.air*5));ease(n.textureDepth.gain,c.swell??.07);ease(n.waterFilter.frequency,c.waterCut);ease(n.airFilter.frequency,c.airCut);ease(n.airGain.gain,c.air*4);ease(n.shimmer.frequency,c.shimmer);ease(n.woodFilter.frequency,c.woodCut??180);ease(n.arrayOsc.frequency,c.arrayHz??220);
     this.updateSpatial();return true;
   }
   // Voice must be routed separately from this master bus, or it too will be ducked.
@@ -193,16 +194,21 @@ export class ImmersiveAudio {
   scheduleEvent() {
     clearTimeout(this.eventTimer);
     if (!this.enabled || this.hidden || this.roomLevel<.2) return;
+    const atCanal=this.scene==='shop'||this.scene==='canal';
     this.eventTimer=setTimeout(()=>{
       this.eventTimer=null;
       if (!this.enabled || this.hidden || this.roomLevel<.2) return;
-      const water=['canal','barge','passage','chamber','ascent','memory','network','restoration'];
-      const crystal=['artisan','warehouse','summit','revelation','initiation'];
-      const kind=water.includes(this.scene)?'water':crystal.includes(this.scene)?'glass':this.scene==='tower'?'bell':this.scene==='archive'||this.scene==='records'?'paper':'wood';
-      const e=this.emitters[kind==='water'?'water':kind==='glass'?'array':'wood'];
+      let kind='wood';
+      if(atCanal)kind=this.scene==='shop'&&Math.random()<.15?'wood':'lap';
+      else if(['barge','passage','chamber','ascent','memory','network','restoration'].includes(this.scene))kind='water';
+      else if(['artisan','warehouse','summit','revelation','initiation'].includes(this.scene))kind='glass';
+      else if(this.scene==='tower')kind='bell';
+      else if(['archive','records'].includes(this.scene))kind='paper';
+      const emitter={water:'water',lap:'water',glass:'array'}[kind]??'wood';
+      const e=this.emitters[emitter];
       this.cue(kind,e.x,e.z);
       this.scheduleEvent();
-    },18000+Math.random()*26000);
+    },atCanal?2400+Math.random()*4700:18000+Math.random()*26000);
     this.eventTimer?.unref?.();
   }
   // A restrained motif on selected dramatic beats, never on every slide.
@@ -240,15 +246,17 @@ export class ImmersiveAudio {
   cue(kind,x=this.listener.x,z=this.listener.z) {
     if (!this.enabled||this.hidden||!this.context||!this.master||kind==='step'||kind==='inspect') return;
     const ctx=this.context, now=ctx.currentTime, position=this.spatial(x,z);
-    if (now-(this.lastCue.get(kind) ?? -Infinity)<(kind==='brass-slide'?.21:.4)) return;
+    const foot=kind==='floor-step'||kind==='rug-step';
+    if (now-(this.lastCue.get(kind) ?? -Infinity)<(foot?.18:kind==='brass-slide'?.21:.4)) return;
     this.lastCue.set(kind,now);
     // Limit simultaneous voices; stop the oldest before making another.
     if (this.voices.size>=12) this.voices.values().next().value.stop();
     const osc=ctx.createOscillator(), gain=ctx.createGain(), pan=ctx.createStereoPanner();
-    const settings={inspect:[440,.32,.10],success:[660,.65,.12],step:[92,.09,.035],warning:[180,.50,.09],bell:[294,1.7,.045],paper:[160,.12,.025],wood:[118,.16,.035],knock:[112,.83,.18],'brass-slide':[123,.22,.055],'stone-seat':[910,.15,.065],'crystal-pulse':[147,1.45,.18],glass:[520,.38,.04],warning_low:[136,.65,.025],warning_mid:[157,.75,.035],warning_high:[178,.85,.045],water:[310,.7,.018],reveal:[220,2.2,.035],test:[440,.7,.50]};
+    const settings={inspect:[440,.32,.10],success:[660,.65,.12],step:[92,.09,.035],'floor-step':[185,.145,.29],'rug-step':[150,.105,.15],lap:[390,.76,.055],warning:[180,.50,.09],bell:[294,1.7,.045],paper:[160,.12,.025],wood:[118,.16,.035],knock:[112,.83,.18],'brass-slide':[123,.22,.055],'stone-seat':[910,.15,.065],'crystal-pulse':[147,1.45,.18],glass:[520,.38,.04],warning_low:[136,.65,.025],warning_mid:[157,.75,.035],warning_high:[178,.85,.045],water:[310,.7,.018],reveal:[220,2.2,.035],test:[440,.7,.50]};
     const [freq,duration,level]=settings[kind]||settings.inspect;
-    osc.type=(kind.startsWith('warning')||kind==='wood'||kind==='knock')?'triangle':'sine';
-    osc.frequency.setValueAtTime(freq,now);
+    osc.type=(foot||kind.startsWith('warning')||kind==='wood'||kind==='knock')?'triangle':'sine';
+    osc.frequency.setValueAtTime(foot?freq*(.9+Math.random()*.2):freq,now);
+    if(foot)osc.frequency.exponentialRampToValueAtTime(freq*.48,now+.1);
     if(kind==='success')osc.frequency.exponentialRampToValueAtTime(freq*1.5,now+.18);
     if(kind==='step'||kind==='wood'||kind==='paper'||kind==='brass-slide')osc.frequency.exponentialRampToValueAtTime(freq*.7,now+duration);
     if(kind==='bell')osc.frequency.exponentialRampToValueAtTime(freq*.995,now+duration);
@@ -263,18 +271,29 @@ export class ImmersiveAudio {
         gain.gain.exponentialRampToValueAtTime(.0001,now+offset+.12);
       }
     }
-    pan.pan.value=position.pan; osc.connect(gain).connect(pan).connect(this.master);
+    pan.pan.value=position.pan;pan.connect(kind==='lap'?this.roomBus:this.master);
+    if(kind!=='lap')osc.connect(gain).connect(pan);
     // Inharmonic partials give the tower bell and handled crystal a soft body,
     // rather than the same pure oscillator used for all interactions.
     const oscillators=[osc],nodes=[osc,gain,pan];
     // Filtered noise gives physical gestures texture; generated in memory, no samples.
-    if (['water','paper','wood','brass-slide'].includes(kind)) {
+    if (foot||['lap','water','paper','wood','brass-slide'].includes(kind)) {
       const source=ctx.createBufferSource(), filter=ctx.createBiquadFilter(), texture=ctx.createGain();
       const length=Math.max(1,Math.floor(ctx.sampleRate*duration));
       const buffer=ctx.createBuffer(1,length,ctx.sampleRate), data=buffer.getChannelData(0);
       let smooth=0;for(let i=0;i<length;i++){smooth=.72*smooth+.28*(Math.random()*2-1);data[i]=smooth;}
-      source.buffer=buffer;filter.type='bandpass';filter.frequency.value=kind==='water'?1100:kind==='paper'?1900:kind==='brass-slide'?1200:380;filter.Q.value=.7;
-      texture.gain.setValueAtTime(.0001,now);texture.gain.exponentialRampToValueAtTime(level*.7*position.attenuation,now+.025);texture.gain.exponentialRampToValueAtTime(.0001,now+duration);
+      const cutoff={'rug-step':620,'floor-step':1100,water:1100,paper:1900,'brass-slide':1200};
+      source.buffer=buffer;filter.type='bandpass';filter.Q.value=.7;
+      filter.frequency.value=kind==='lap'?560+Math.random()*240:(cutoff[kind]??380);
+      const strength=foot?1.6:kind==='lap'?3:.7;
+      const peak=level*strength*position.attenuation;
+      texture.gain.setValueAtTime(.0001,now);
+      if(kind==='lap'){
+        texture.gain.linearRampToValueAtTime(peak,now+.17);
+        texture.gain.linearRampToValueAtTime(peak*.55,now+.36);
+        filter.frequency.setTargetAtTime(410,now+.17,.20);
+      }else texture.gain.exponentialRampToValueAtTime(peak,now+.025);
+      texture.gain.exponentialRampToValueAtTime(.0001,now+duration);
       source.connect(filter).connect(texture).connect(pan);oscillators.push(source);nodes.push(source,filter,texture);
     }
     if(kind==='bell'||kind==='glass'||kind==='reveal'||kind==='test'||kind==='stone-seat'||kind==='crystal-pulse')for(const [ratio,amount] of [[2.03,.22],[3.93,.08]]){

@@ -45,6 +45,8 @@ dialog{width:min(680px,96vw);max-height:94svh;padding:0;color:var(--ink);border:
 #move-pad{left:max(14px,env(safe-area-inset-left))}#look-pad{right:max(14px,env(safe-area-inset-right))}
 #room footer{left:105px;right:105px;display:grid;justify-content:center;justify-items:center;gap:2px;text-align:center;padding-inline:0}
 #destinations{justify-content:center}
+#room footer:has(#destinations[hidden]){background:none}
+#room footer:has(#destinations[hidden]) #guide:not(:empty){background:#0b2127db;border-radius:4px;padding:3px 8px}
 @media(max-width:550px){#room footer{left:91px;right:91px}#room footer nav{gap:2px}#destinations button{font-size:12px;padding:4px}#guide{font-size:11px}}
 
 /* At the bench the photograph takes the full working area. Secondary controls

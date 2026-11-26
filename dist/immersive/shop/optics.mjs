@@ -1,4 +1,4 @@
-import {projection,sunsetAngle,crystalAngle} from './investigation.mjs';
+import {hasStone,projection,sunsetAngle,crystalAngle} from './investigation.mjs';
 
 const width=900,height=450,stand={x:450,y:270},inlay={x:747,y:211};
 const assets={};
@@ -23,7 +23,7 @@ export function lampPosition(angle){
 export function propAt(x,y,s){
   const lamp=lampPosition(s.lamp);
   if(Math.abs(x-lamp.x)<72 && y>lamp.y-192 && y<lamp.y+23)return 'lamp';
-  if(((x-stand.x)/110)**2+((y-stand.y+55)/82)**2<1)return 'turn';
+  if(hasStone(s)&&((x-stand.x)/110)**2+((y-stand.y+55)/82)**2<1)return 'turn';
   return null;
 }
 export function dragLamp(original,deltaY){
@@ -100,7 +100,7 @@ export function illustration(s,kind='bench',beat=0,canvas=document.createElement
   const brass=c.createLinearGradient(stand.x-50,0,stand.x+50,0);brass.addColorStop(0,'#46341f');brass.addColorStop(.23,'#b68a45');brass.addColorStop(.43,'#e4c482');brass.addColorStop(.74,'#77542f');brass.addColorStop(1,'#38291b');
   if(assets.rest)drawProp(c,assets.rest,stand.x,stand.y+3,153,82);
   else ellipse(c,stand.x,stand.y,55,12,brass);
-  if(s.tray){
+  if(hasStone(s)){
     const y=inlay.y+o.offset*1.8;
     c.save();c.globalCompositeOperation='screen';
     if(o.diffuse){
@@ -127,6 +127,9 @@ export function illustration(s,kind='bench',beat=0,canvas=document.createElement
   ellipse(c,lamp.x+4,lamp.y+4,55,12,'#452c1f60');
   if(assets.lamp)drawProp(c,assets.lamp,lamp.x,lamp.y,115,176);
   else{ellipse(c,lamp.x,lamp.y-8,35,14,brass);glow(c,lamp.x,lamp.y-58,25,'#ffc778');}
-  canvas.setAttribute('role','img');canvas.setAttribute('aria-label',o.diffuse?'The clear specimen spills a broad patch of light.':'A brass lamp stands to the left of the quartz. Its real shadow turns across the pencilled outline as the lamp moves.');
+  const description=!hasStone(s)?'The lamp casts the shadow of an empty brass rest.':
+    o.diffuse?'The clear specimen spills a broad patch of light.':
+    s.sketch?'The lamp casts the stand’s shadow across the temple sketch.':'Quartz sits in the brass rest beside the lamp.';
+  canvas.setAttribute('role','img');canvas.setAttribute('aria-label',description);
   return canvas;
 }

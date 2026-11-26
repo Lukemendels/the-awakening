@@ -1,6 +1,7 @@
 import {canOccupy} from '../engine.mjs';
 
 export const stations = {
+  drawer: {label:'Grading drawer', mark:'⌑', point:[7.03,.68,4.52], approach:[6.52,4.54]},
   notebook: {label:'Notebook', mark:'✎', point:[1.5,1.05,4.5], approach:[2.5,4.5]},
   shelf: {label:'Specimen shelf', mark:'◇', point:[2.1,1.6,1.5], approach:[2.25,2.25]},
   bench: {label:'Light bench', mark:'☼', point:[6.55,1.26,3.08], approach:[6.5,4]}

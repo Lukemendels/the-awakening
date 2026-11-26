@@ -74,7 +74,8 @@ function loupe(c,spot){
 }
 export function illustration(s,kind='bench',beat=0,canvas=document.createElement('canvas')){
   canvas.className='stage';if(canvas.width!==1350){canvas.width=1350;canvas.height=675;}
-  const c=canvas.getContext('2d');c.setTransform(1.5,0,0,1.5,0,0);c.lineCap='round';c.lineJoin='round';
+  // Keep the evidence plate in its own bitmap while the 3D room uses the GPU.
+  const c=canvas.getContext('2d',{willReadFrequently:true});c.setTransform(1.5,0,0,1.5,0,0);c.lineCap='round';c.lineJoin='round';
   const sketch=kind==='sketch';
   if(!sketch&&assets.plate){
     const photo=assets.plate,sh=photo.width*height/width;

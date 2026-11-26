@@ -133,7 +133,8 @@ function bench(){
   const hint=paragraph(state.hints?hints[state.hints-1]:'','hint');hint.setAttribute('role','status');evidence.append(hint);
   button('Hint',()=>{state.hints=Math.min(3,state.hints+1);hint.textContent=hints[state.hints-1];save();},actions);refresh();
 }
-for(const b of document.querySelectorAll('[data-view]'))b.onclick=()=>start(b.dataset.view);
+for(const b of document.querySelectorAll('[data-view]')){b.onclick=()=>start(b.dataset.view);b.disabled=false;}
+$('loading').hidden=true;
 for(const [id,s] of Object.entries(stations))button(s.label,()=>view?view.go(s.approach,id):inspect(id),$('destinations'));
 $('close').onclick=close;dialog.addEventListener('cancel',e=>{e.preventDefault();close();});
 $('switch').onclick=leaveRoom;$('journal').onclick=()=>inspect('journal');

@@ -70,13 +70,13 @@ export class ShopView {
   pose(){return {x:this.pos[0],z:this.pos[1],yaw:this.yaw,pitch:this.pitch};}
   pause(){this.path=[];this.arrival=null;this.input?.reset();}
   stop(){this.running=false;this.pause();cancelAnimationFrame(this.frameId);}
-  go(to,id){
+  go(to,id,approach=null){
     const [x,,z]=this.layout.stations[id].point;
     const inReach=Math.hypot(this.pos[0]-x,this.pos[1]-z)<=1.3;
-    const path=inReach&&!this.layout.stations[id].walkThrough?[]:pathTo(this.pos,to,this.layout.walkable);
+    const path=inReach&&!approach&&!this.layout.stations[id].walkThrough?[]:pathTo(this.pos,to,this.layout.walkable);
     if(!path){this.onMessage('Move clear of the furniture and try again.');return;}
-    this.input.reset();this.path=path;this.arrival=id;
-    this.onMessage('Approaching '+this.layout.stations[id].label.toLowerCase()+'…');
+    this.input.reset();this.path=path;this.arrival=id;this.approach=approach;
+    this.onMessage(approach?.message??('Approaching '+this.layout.stations[id].label.toLowerCase()+'…'));
   }
   walk(dt){
     const {move,look,keys}=this.input;
@@ -118,7 +118,7 @@ export class ShopView {
     let facing=false;
     if(this.arrival){
       const station=this.layout.stations[this.arrival];
-      const [tx,ty,tz]=station.lookAt??station.point;
+      const [tx,ty,tz]=this.approach?.lookAt??station.lookAt??station.point;
       const yaw=Math.atan2(tz-z,tx-x);
       const pitch=Math.atan2(ty-eye,Math.hypot(tx-x,tz-z));
       const blend=this.reduce.matches?1:1-Math.exp(-7*dt);
@@ -151,6 +151,6 @@ export class ShopView {
     this.room.update?.(time,this.reduce.matches);
     this.room.renderer.render(this.room.scene,camera);
     if(this.layout.crossed?.(x,z)){this.arrival=null;this.onArrive('passage');return;}
-    if(facing&&!this.path.length&&this.arrival){const id=this.arrival;this.arrival=null;this.onArrive(id);}
+    if(facing&&!this.path.length&&this.arrival){const id=this.arrival,done=this.approach?.arrived??this.onArrive;this.arrival=null;this.approach=null;done(id);}
   };
 }

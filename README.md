@@ -38,7 +38,7 @@ See [CREDITS.md](CREDITS.md) for attribution and artwork provenance. Suggested c
 
 [View the playable bench artwork](dist/assets/generated/light-bench-study.webp).
 
-Play Season One from the title, or [start at Kaelan’s shop](dist/immersive/shop/index.html). Walk and strafe with the left stick, look with the right stick, or use WASD and the arrow keys. Tap a station to approach it. Touch either stick to take over. In the [Lot VII playtest](dist/immersive/shop/index.html?run=lot-vii), Father can hold one crate before collection. Reproduce the two readings from the temple, record your evidence, and identify the crate in the shipping book. The packet assignments and tracings survive a reload. The dock reflection leads directly into the water-gate investigation.
+Play Season One from the title, or [start at Kaelan’s shop](dist/immersive/shop/index.html). Walk and strafe with the left stick, look with the right stick, or use WASD and the arrow keys. Tap a station to approach it. Touch either stick to take over. In the [shop playtest](dist/immersive/shop/index.html?run=smoked-brass), drag the mounted stone, compare its light with the temple tracing and carry a hold ticket to the loading crates. Keyboard players can turn the focused stone with the arrow keys or Home and End. Tapping the ticket and then a crate also attaches it. The dock reflection leads directly into the water-gate investigation.
 
 The opening remembers the bench, cinematic shot, and dock on this device. Sound is optional, and the cutscene has captions and a pause control. Use **Replay the opening** on the season title to revisit the investigation while retaining later episode progress.
 

@@ -119,3 +119,32 @@ dialog:has(.workbench) h2{font-size:clamp(24px,4vmin,39px);line-height:44px;marg
   .sample-controls .actions .manifest-entry{flex-basis:100%}
 }
 #content .sketch-key{background:#dfcd9f;color:#332e25;border-radius:3px;padding:.4em .6em;font:600 .9rem/1.3 Georgia,serif}
+
+dialog:has(.touch-bench){width:min(950px,100vw);max-width:100vw;max-height:100svh;background:#172221;color:#f1e7d3}
+dialog:has(.touch-bench) .paper{padding:10px 14px}
+dialog:has(.touch-bench) #panel-label{display:none}
+dialog:has(.touch-bench) h2{font-size:clamp(22px,4vmin,35px);line-height:44px;margin:0}
+.apparatus{position:relative;margin:auto;width:min(100%,calc((100svh - 167px)*2));min-width:0}
+.apparatus .stage{display:block;width:100%;height:auto;aspect-ratio:2/1;margin:0}
+.stone-grip{position:absolute;left:37%;top:24%;width:26%;height:44%;min-height:44px;touch-action:none;cursor:grab;border-radius:40%;outline-offset:2px}
+.stone-grip.turning{cursor:grabbing}
+.temple-fold{position:absolute;left:2%;top:3%;z-index:1;max-width:94%}
+.temple-fold summary,.packet-row .packet{color:#3e3021;background:#dfc99a;border:1px solid #a58c61;box-shadow:0 2px 4px #25190d66}
+.temple-fold summary{cursor:pointer;font:italic 16px Georgia,serif;min-height:44px;display:flex;align-items:center;padding:0 12px;width:max-content}
+.temple-fold[open]{width:min(90%,515px)}.temple-fold[open] canvas{width:100%;box-shadow:0 3px 12px #21170e88}
+.bench-edge{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px}.packet-row{display:flex;gap:5px}
+.packet-row .packet{font:600 .91rem Georgia,serif;min-height:44px;padding:5px 10px;text-align:left}
+.packet small{display:block;font:normal .72rem/1.35 system-ui,sans-serif}.packet-row .packet[aria-pressed=true]{outline:2px solid #e8c377;outline-offset:1px;background:#fff0cc}
+#content .bench-status{font-size:.86rem;margin:2px 0;max-width:24em}.carry-ticket{max-width:13em}.freight-paper .crate-imprint{font:600 1.5rem Georgia,serif;background:#decca8;color:#3d3122;padding:1em;border:2px solid #a38960}
+@media(orientation:portrait){.bench-edge{flex-wrap:wrap}.packet-row{width:100%}.packet-row .packet{flex:1}.carry-ticket{max-width:none}.apparatus{width:100%}}
+@media(orientation:landscape) and (max-height:480px){dialog:has(.touch-bench){margin:auto;width:100vw;border:0}.apparatus{width:min(100%,calc((100svh - 125px)*2))}.packet-row .packet{padding:4px 7px}.bench-edge{gap:9px}.carry-ticket{font-size:.85rem}}
+#ticket-in-hand{position:absolute;bottom:max(14px,env(safe-area-inset-bottom));left:calc(50% - 93px);z-index:3;width:186px;background:#852f28;color:#fff4d5;border:2px solid #d3ad71;box-shadow:0 3px 7px #161005aa;font:600 .91rem Georgia,serif;touch-action:none;user-select:none;cursor:grab}
+#ticket-in-hand[aria-pressed=true]{outline:3px solid #fff0b3}
+#room:has(#ticket-in-hand:not([hidden])) footer{bottom:60px}
+
+.temple-fold[open] canvas{touch-action:none;cursor:grab}
+.temple-fold[open] button{font:600 .87rem Georgia,serif;color:#352b1e;background:#e0c995;border-color:#957750}
+#room:has(#ticket-in-hand:not([hidden])) .pin[aria-label^="Approach Crate"]:not(:focus-visible),
+#room.shipment-held .pin[aria-label^="Approach Crate"]:not(:focus-visible){opacity:0}
+.packet-row{flex:0 0 auto}.packet-row .packet{width:clamp(79px,10vw,105px)}.bench-status{flex:1}
+@media(orientation:portrait){.packet-row .packet{width:auto}}

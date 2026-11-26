@@ -1,22 +1,23 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {fresh,restore,trace,holdCrate,reading,ticket,packets,manifest} from '../dist/immersive/shop/investigation.mjs';
+import {fresh,restore,trace,holdCrate,reading,beam,sweep,profile,ticket,packets,manifest} from '../dist/immersive/shop/investigation.mjs';
 import {stations,pathTo,walkable} from '../dist/immersive/shop/walk.mjs';
 
-test('only the two matching readings and their own crate can hold a shipment',()=>{
+test('two same-endpoint paths separate at the rivet, and only the temple path and matching crate pass',()=>{
   for(const order of ['012','021','102','120','201','210']){
     for(const source of ['tray','drawerStone']){
       const s={...fresh(),order,[source]:true,sketch:true};
       for(const packet of packets){
-        s.packet=packet;s.notch=0;assert.ok(trace(s));
+        s.packet=packet;sweep(s,0);
         assert.equal(holdCrate(s,ticket(packet).crate),'missing');
-        s.notch=1;assert.ok(trace(s));
+        sweep(s,.5);assert.deepEqual(restore(s),s);sweep(s,1);
       }
       const both=packets.filter(id=>reading(s,id,0)==='round'&&reading(s,id,1)==='square');
-      assert.equal(both.length,1);
+      assert.equal(both.length,2);
+      assert.deepEqual(both.map(id=>Math.sign(beam(profile(s,id),.5).y)).sort(),[-1,1]);
       for(const packet of packets)for(const entry of manifest){
         const attempt=restore({...s,packet,book:true});
-        const expected=reading(s,packet,0)!=='round'?'first':reading(s,packet,1)!=='square'?'turn':ticket(packet)!==entry?'ticket':'held';
+        const expected=profile(s,packet)===2?'path':reading(s,packet,1)!=='square'?'turn':ticket(packet)!==entry?'ticket':'held';
         assert.equal(holdCrate(attempt,entry.crate),expected);
         assert.deepEqual(restore(attempt),attempt);
         assert.equal(attempt.phase,expected==='held'?'film':'shop');
@@ -65,5 +66,15 @@ test('archive and temple furniture have fixed depth and an independently movable
     const sides=new T.Box3().setFromObject(root).getSize(new T.Vector3());
     assert.ok(sides.x>.4&&sides.y>.45&&sides.z>.1,kind);
     if(kind==='plinth'){token.visible=false;assert.ok(root.children.some(part=>part.visible));}
+  }
+});
+
+test('cargo footprints stop free walking and each crate is reachable from the common viewing position',async()=>{
+  const {cargo,freightStations,loadingWalkable}=await import('../dist/immersive/shop/freight.mjs');
+  for(const item of cargo){
+    assert.equal(loadingWalkable(item.x,item.z),false);
+    const approach=freightStations['crate-'+item.crate].approach;
+    assert.ok(pathTo([4.54,4.52],approach,loadingWalkable));
+    assert.ok(pathTo(approach,freightStations.window.approach,loadingWalkable));
   }
 });

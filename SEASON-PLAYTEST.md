@@ -5,7 +5,7 @@ Season One runs from the temple ceremony to the answering harbor. For a fresh pl
 | Episode | Story contribution | Player experience to preserve or test |
 | --- | --- | --- |
 | 1 · City of Light and Sound | The ceremony fails in public. | Let players see the temple mark clearly enough to recognize it later. Time how long it takes to reach the first meaningful action. |
-| 2 · The Warning | The grading rules threaten Kaelan’s family. | Identify which crate to hold using two temple readings and the matching shipping ticket. |
+| 2 · The Warning | The grading rules threaten Kaelan’s family. | Turn a cloudy stone and compare the whole light path with the temple scratch. Carry the matching ticket to a real crate. |
 | 3 · Night’s Secrets | Condemned cargo carries the mystery beyond the shop. | Compare two views of the barge reflection. Check whether the branching relationship is readable when the water changes. |
 | 4 · Hidden Patterns | The workshop hides older markings and guards approach. | Let players expose the wall and protect the drawings. Keep those two actions close together. |
 | 5 · Hidden Records | Altered grading standards emerge in the archive. | Show price and rejection records together. Check whether players can explain why the numbers challenge the scarcity story. |
@@ -29,6 +29,29 @@ Season One runs from the temple ceremony to the answering harbor. For a fresh pl
 | 23 · Awakening | Restoring distribution changes the city. | Show which rings gain light when the player changes a route. Pay off the early city-model discovery. |
 | 24 · Seeds of Legacy | Initiation closes the season and opens a larger mission. | Let the player witness the harbor, accept initiation and recognize that Season One is complete. |
 
-## First physical playtest
+## Opening review loop
 
-Start at the temple on a phone with a fresh playtest save. Let the player decide where to walk, when to open the journal and how long to linger after a solve. Listen for whether they can explain what changed and where they want to go next. Check the balance of footsteps, canal water and speech on the phone speaker, then leave the browser mid-scene and return using the same link.
+The shop-to-quay slice is the unit under review. Its promise is that a player can discover why a supposedly worthless stone matters to Father and leave the shop curious about the rest of the shipment.
+
+1. Start with a fresh browser profile at the exact invitation URL. Include the host screen, loading, default motion, and audio unlock. On the first pass use only visible pixels, normal touch and the information available so far. Run the actual temple entry too before claiming readiness for the full game. A reviewer who knows the solution records that fact.
+2. Save a frame at the first deliberate experiment, the first surprising result, an honest wrong inference, the visible consequence and the moment one could stop. At each, write what prompted the action, the prediction, what changed and the strongest reason to quit. Distinguish an observation from an inference. Technical regression tests may seed state or inspect labels. A sighted discoverability pass uses neither shortcut. Test assistive controls on a separate pass.
+3. Reject a build internally if the first meaningful action is hidden behind errands, if the interface performs the inference, if button repetition can replace the experiment, if feedback tells the conclusion before the player can see the evidence, or if a solve advances a caption without a perceptible consequence. Ask whether the same story could be told just as well with a Continue button. A wrong hypothesis should give the player something to reconsider.
+4. Change the smallest mechanic responsible for the earliest failure. Replay from the beginning and deliberately try a different first object, a plausible wrong answer and an interrupted solve. Check narrow landscape, portrait, sound off, keyboard input and saved state. A fix must improve the observed moment without moving the obstacle to the next beat. Keep the before and after, the build identifier, the device or emulator, and the remaining risk. Return a build to internal iteration while a rejection condition still holds.
+5. Once the internal pass clears, offer the opening to five people unfamiliar with the project, individually on their own phones. Say only “Play for as long as you like. You can stop at any time.” Give no walkthrough, time quota, hints or prompt to follow the barge. Observe the first deliberate action, a change of mind, help needed, voluntary continuation and where they actually stop. After they stop, ask “What were you trying to find out?”, “What made you think that?” and “What would you want to see next?” Record help when it happens and exclude assisted steps from unaided results.
+6. Our proposed pilot threshold is at least four of five who can describe Father's problem and point to their own evidence, and at least three of five who voluntarily enter the quay and investigate something there. Two people stuck or disengaging at the same beat sends that beat back through the loop. Count all starts, including early exits. Treat five people as a design signal. A change to the premise or central interaction warrants another fresh cohort.
+
+For a repeatable internal capture, run `python tools/review-opening.py PLAY_URL /tmp/new-session` with Python Playwright and Chromium installed. Inspect each numbered frame before choosing the next touch. The local TSV records actions and elapsed session time, including reviewer deliberation. It measures neither human decision time nor enjoyment.
+
+### What the reference games contribute
+
+*The Room* makes handling an artifact the pleasure of investigating it. The shop adaptation puts the finger on the quartz itself and keeps the optical response visible during the turn. [Fireproof Games](https://www.fireproofgames.com/games/the-room)
+
+*Return of the Obra Dinn* gives the investigator a concrete professional obligation and asks them to reconstruct an event from evidence. Here the player owns the claim about one shipment. Two samples reach the same final stud, so the route each took matters. [Lucas Pope](https://obradinn.com/)
+
+*Outer Wilds* builds leads between discoveries. Mobius also tested whether players could understand those leads in a low-cost prototype. Here the cargo leaving the shop carries an echo of a phenomenon the player has just learned to recognize. Voluntary investigation at the quay is the test of that connection. [Mobius Digital](https://www.mobiusdigitalgames.com/news/demaking-outer-wilds)
+
+### First application, November 26, 2026
+
+The published Lot VII shop at `34427be` opened on a proxy warning in a clean browser. Tapping the visible lamp led to an empty rest and a destination button. The previous completion script activated hidden station controls, read the drawing's accessibility description and selected the crate with the matching label. It verified the implementation while bypassing visual discovery. The old trace control also supplied the reading, so a player could copy it into a decision.
+
+In the revised shop, a screen-only touch pass reached the bench in one tap, turned two stones, distinguished the arcs, carried a ticket, tried the wrong crate, recovered by comparing the cuts and attached it to the matching crate. Father’s hold appeared on its wood. Turning towards the window and approaching it led to the barge. The first iteration walked directly up to crate 08 and suggested an answer through framing. The second stopped far enough back to see all three. Reviewing that view also exposed a marker covering the printed seal, and looking at the unfolded sketch exposed a low-contrast pencil line. Both were revised. No independent player data has been collected for this build. The open question is whether someone chooses to investigate the departing cargo once Father’s immediate problem is resolved.

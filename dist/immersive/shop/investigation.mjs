@@ -1,56 +1,62 @@
-export const sunsetAngle = 26;
-export const crystalAngle = -18;
-export const fresh = () => ({
-  phase:'shop', shot:0, sketch:false, tray:false, drawerStone:false, specimen:'condemned',
-  lamp:-30, turn:16, hints:0, clearSeen:false, featherSeen:false, tested:null, active:null
-});
-
-export const hasStone = s => s.tray || s.drawerStone;
-
-export function restore(raw,flags={}) {
-  const state=fresh();
-  state.sketch=raw?.sketch===true || flags.notebook===true;
-  state.tray=raw?.tray===true || Boolean(flags.specimen);
+export const sunsetAngle=26;
+export const assignment='Which crate should Father hold back from the disposal barge?';
+export const sketchNote='First notch: the fork met the round stud. One notch clockwise: it met the square stud.';
+export const packets=['A','B','C'];
+// A sample ticket carries the stamp and edge cuts from its parent crate.
+export const manifest=[
+  {crate:'14',stamp:'Heron',cuts:2},
+  {crate:'08',stamp:'Heron',cuts:1},
+  {crate:'23',stamp:'Reed',cuts:2}
+];
+const orders=['012','021','102','120','201','210'];
+// Matching pair, stationary reflection, and a fork that starts on the square.
+const tracks=[['round','square'],['round','round'],['square','square']];
+export const hasStone=s=>s.tray||s.drawerStone;
+export function fresh(){
+  return {phase:'shop',shot:0,sketch:false,tray:false,drawerStone:false,active:null,
+    order:orders[Math.floor(Math.random()*orders.length)],packet:'A',notch:0,book:false,tracings:{},held:null};
+}
+export const ticket=packet=>manifest[packets.indexOf(packet)];
+export const marks=entry=>entry.stamp+' · '+entry.cuts+(entry.cuts===1?' edge cut':' edge cuts');
+export function reading(s,packet=s.packet,notch=s.notch){
+  return tracks[Number(s.order[packets.indexOf(packet)])][notch];
+}
+export function restore(raw,flags={}){
+  const s=fresh();
+  s.sketch=raw?.sketch===true||flags.notebook===true;
+  s.tray=raw?.tray===true||Boolean(flags.specimen);
   if(!raw){
-    if(flags.solved)Object.assign(state,{sketch:true,tray:true,phase:'film',shot:2});
-    return state;
+    if(flags.solved)Object.assign(s,{sketch:true,tray:true,phase:'film',shot:2});
+    return s;
   }
-  for(const [key,min,max] of [['lamp',-45,45],['turn',-60,60],['hints',0,3],['shot',0,4]]){
-    if(Number.isInteger(raw[key]) && raw[key]>=min && raw[key]<=max)state[key]=raw[key];
+  s.drawerStone=raw.drawerStone===true;
+  if(Number.isInteger(raw.shot)&&raw.shot>=0&&raw.shot<5)s.shot=raw.shot;
+  if(['notebook','shelf','bench','journal','drawer'].includes(raw.active))s.active=raw.active;
+  if(orders.includes(raw.order)){
+    s.order=raw.order;
+    s.book=raw.book===true;
+    if(packets.includes(raw.packet))s.packet=raw.packet;
+    if(raw.notch===1)s.notch=1;
+    for(const packet of packets){
+      const mask=raw.tracings?.[packet];
+      if(Number.isInteger(mask)&&mask>0&&mask<=3)s.tracings[packet]=mask;
+    }
+    if(raw.held===ticket(s.packet).crate&&s.tracings[s.packet]===3&&reading(s,s.packet,0)==='round'&&reading(s,s.packet,1)==='square')s.held=raw.held;
   }
-  state.drawerStone=raw.drawerStone===true;
-  if(raw.specimen==='approved' && hasStone(state))state.specimen='approved';
-  state.clearSeen=raw.clearSeen===true;
-  state.featherSeen=raw.featherSeen===true;
-  if(raw.tested==='approved'&&state.clearSeen||raw.tested==='condemned'&&state.featherSeen)state.tested=raw.tested;
-  if(['notebook','shelf','bench','journal','drawer'].includes(raw.active))state.active=raw.active;
-  if(['film','dock'].includes(raw.phase) && hasStone(state) && state.sketch)state.phase=raw.phase;
-  return state;
+  // A player already beyond the earlier two-sample puzzle keeps that checkpoint.
+  if(['dock','film'].includes(raw.phase)&&s.sketch&&hasStone(s))s.phase=raw.phase;
+  return s;
 }
-
-// These values drive both the drawn streaks and the generous capture area.
-export function projection(s){
-  const tilt=s.turn-crystalAngle, light=s.lamp-sunsetAngle;
-  const split=Math.abs(tilt)*.95;
-  return {
-    diffuse:s.specimen==='approved',
-    visible:Math.abs(light)<28,
-    offset:light*1.2+tilt*.28,
-    split,
-    aligned:hasStone(s) && s.sketch && s.specimen==='condemned' &&
-      Math.abs(light)<=5 && Math.abs(tilt)<=5
-  };
-}
-// Both samples use the same stop on the lamp and the same seat in the brass rest.
-export function testSpecimen(state,specimen){
-  if(state.phase!=='shop'||!hasStone(state)||!state.sketch||!['approved','condemned'].includes(specimen))return false;
-  Object.assign(state,{specimen,tested:specimen,lamp:sunsetAngle,turn:crystalAngle});
-  if(specimen==='approved')state.clearSeen=true;
-  else state.featherSeen=true;
+export function trace(s){
+  if(s.phase!=='shop'||!s.sketch||!hasStone(s))return false;
+  s.tracings[s.packet]=(s.tracings[s.packet]||0)|(1<<s.notch);
   return true;
 }
-export function keepSpecimen(state,specimen){
-  if(state.phase!=='shop'||!state.sketch||!hasStone(state)||!state.clearSeen||!state.featherSeen||specimen!=='condemned')return false;
-  Object.assign(state,{phase:'film',specimen,shot:0,active:null,lamp:sunsetAngle,turn:crystalAngle});
-  return true;
+export function holdCrate(s,crate){
+  if(s.phase!=='shop'||!s.sketch||!hasStone(s)||s.tracings[s.packet]!==3)return 'missing';
+  if(reading(s,s.packet,0)!=='round')return 'first';
+  if(reading(s,s.packet,1)!=='square')return 'turn';
+  if(crate!==ticket(s.packet).crate)return 'ticket';
+  Object.assign(s,{phase:'film',shot:0,active:null,notch:1,held:crate});
+  return 'held';
 }

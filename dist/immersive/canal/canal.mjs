@@ -93,7 +93,8 @@ function observe(id){
 }
 function notes(){
   const f=flags();
-  if(journey.shopOpening?.featherSeen)text('In my pocket · Lot VII. Father kept the feathered sample for me. At the bench it threw two threads onto the brass.');
+  if(journey.shopOpening?.held)text('In my pocket · Lot VII. Father held crate '+journey.shopOpening.held+' after my sample reproduced both temple tracings. The rest went to the quay.');
+  else if(journey.shopOpening?.featherSeen)text('In my pocket · Lot VII. Father kept the feathered sample for me. At the bench it threw two threads onto the brass.');
   text('Does the fork of light beneath the discarded quartz keep its shape from a different angle?');
   if(!f.near_view&&!f.far_view)text('I can trace the same cargo from the lower steps and the gate overlook.');
   if(f.near_view)text('Lower steps · Two streaks in the wake, one with a nick.');

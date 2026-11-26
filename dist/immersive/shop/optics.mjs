@@ -1,11 +1,11 @@
-import {hasStone,projection,sunsetAngle,crystalAngle} from './investigation.mjs';
+import {hasStone,reading,sunsetAngle} from './investigation.mjs';
 
 const width=900,height=450,stand={x:450,y:270},inlay={x:747,y:211};
 const assets={};
 let loading;
 export function loadBenchArt(){
   if(!loading){
-    const sources={plate:'light-bench-plate',lamp:'bench-lamp',rest:'bench-rest',condemned:'bench-quartz',approved:'bench-clear'};
+    const sources={plate:'light-bench-plate',lamp:'bench-lamp',rest:'bench-rest',condemned:'bench-quartz'};
     loading=Promise.all(Object.entries(sources).map(([key,name])=>new Promise(resolve=>{
       const image=new Image();
       image.onload=()=>{assets[key]=image;resolve();};
@@ -50,36 +50,26 @@ function shadow(c,angle,sketch){
   }
   c.restore();
 }
-function brassMarker(c){
-  c.save();c.translate(inlay.x,inlay.y);c.rotate(-.09);
-  c.strokeStyle='#655844';c.lineWidth=1.5;c.beginPath();c.ellipse(0,0,25,16,-.12,.05,6.17);c.stroke();
-  const brass=c.createLinearGradient(-6,-7,6,7);brass.addColorStop(0,'#ffe9aa');brass.addColorStop(.5,'#ac874a');brass.addColorStop(1,'#77572d');
-  c.fillStyle=brass;c.beginPath();c.moveTo(-11,0);c.lineTo(0,-6);c.lineTo(11,0);c.lineTo(0,6);c.closePath();c.fill();c.restore();
-}
-function annotate(c){
-  shadow(c,sunsetAngle,true);brassMarker(c);
-  c.fillStyle='#5b503e';c.font='italic 18px Georgia';c.fillText('Brass inlay',inlay.x-40,inlay.y+43);
-}
 function drawProp(c,image,x,y,w,h,radians=0){
   c.save();c.translate(x,y);c.rotate(radians);
   c.drawImage(image,-w/2,-h,w,h);c.restore();
 }
-function showTileThroughLoupe(c,s){
-  const x=751,y=345,r=66;
+function studs(c,x,y,scale){
+  c.save();c.translate(x,y);c.scale(scale,scale);
+  c.lineWidth=2;c.strokeStyle='#d5ba7c';
+  c.beginPath();c.arc(0,-22,10,0,Math.PI*2);c.stroke();
+  c.strokeRect(-9,14,18,18);
+  c.restore();
+}
+function loupe(c,spot){
+  const x=744,y=320,r=89,dy=spot==='round'?-22:23;
   c.save();
-  stroke(c,[[inlay.x+9,inlay.y+10],[x+44,y-r+12]],'#756947',1.5);
-  c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.clip();
-  const base=c.createRadialGradient(x-20,y-24,3,x,y,r);
-  base.addColorStop(0,'#806f49');base.addColorStop(1,'#302e26');c.fillStyle=base;c.fillRect(x-r,y-r,r*2,r*2);
-  c.strokeStyle='#b09569';c.lineWidth=2;c.beginPath();c.ellipse(x+11,y+3,25,15,-.12,0,Math.PI*2);c.stroke();
-  if(s.tested==='approved'){
-    c.save();c.translate(x+3,y);c.scale(1.5,.73);glow(c,0,0,39,'#fff2bded');c.restore();
-  }else{
-    c.shadowColor='#ffc56c';c.shadowBlur=7;
-    for(const sign of [-1,1])stroke(c,[[x-r-3,y+sign*31],[x+12,y+3]],'#fff3b7',3.5);
-    glow(c,x+12,y+3,10,'#ffffdf');
-  }
-  c.restore();c.strokeStyle='#b99856';c.lineWidth=5;c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.stroke();
+  c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.fillStyle='#38352e';c.fill();c.clip();
+  studs(c,x+18,y,1.36);
+  c.shadowColor='#ffc56c';c.shadowBlur=5;
+  for(const sign of [-1,1])stroke(c,[[x-r,y+sign*40],[x+18,y+dy*1.36]],'#fff1b8',3);
+  glow(c,x+18,y+dy*1.36,13,'#fff7c5');
+  c.restore();c.strokeStyle='#b99856';c.lineWidth=6;c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.stroke();
   c.fillStyle='#453925';c.font='19px Georgia';c.textAlign='center';c.fillText('Through the loupe',x,y+r+25);c.textAlign='start';
 }
 export function illustration(s,kind='bench',beat=0,canvas=document.createElement('canvas')){
@@ -94,35 +84,33 @@ export function illustration(s,kind='bench',beat=0,canvas=document.createElement
   }
   if(sketch){
     c.strokeStyle='#877256';c.strokeRect(25,24,850,402);
-    const l=lampPosition(sunsetAngle);
-    stroke(c,[[l.x,l.y],[stand.x,stand.y-45],[inlay.x,inlay.y+(1-beat)*75]],'#f8edbf',4);
-    stroke(c,[[stand.x-22,stand.y],[stand.x-10,stand.y-46],[stand.x+8,stand.y-46],[stand.x+20,stand.y]],'#574e3e',3);
-    annotate(c);c.fillStyle='#564b39';c.font='italic 23px Georgia';c.fillText('Temple steps · Spring equinox',65,80);c.font='italic 18px Georgia';c.fillText('Last sunlight',l.x-25,l.y+35);
-    canvas.setAttribute('role','img');canvas.setAttribute('aria-label','Field sketch. The stand casts a long shadow to the right, a little uphill. A circle marks where the streaks meet.');return canvas;
+    c.fillStyle='#493c2c';c.font='italic 26px Georgia';c.fillText('Temple light · My two tracings',64,79);
+    for(const [i,label] of ['I · Before the turn','II · One notch clockwise'].entries()){
+      const x=88+i*418,y=222;
+      c.fillStyle='#555047';c.fillRect(x,y-89,280,160);
+      studs(c,x+215,y-2,1.65);
+      const tip=y-2+(i?23:-22)*1.65;
+      for(const sign of [-1,1])stroke(c,[[x+18,y-6+sign*35],[x+215,tip]],'#f6e1a3',4);
+      c.fillStyle='#493c2c';c.font='24px Georgia';c.fillText(label,x,y+117);
+    }
+    canvas.setAttribute('role','img');canvas.setAttribute('aria-label','Temple sketch. At notch one the fork meets a round stud. At notch two it meets a square stud.');
+    return canvas;
   }
-  if(s.sketch)annotate(c);
-  const lamp=lampPosition(s.lamp),o=projection(s);
+  if(s.sketch)shadow(c,sunsetAngle,true);
+  const lamp=lampPosition(sunsetAngle);
   glow(c,lamp.x+12,lamp.y-85,160,'#ffb94f39');
-  shadow(c,s.lamp,false);
+  shadow(c,sunsetAngle,false);
   ellipse(c,stand.x+4,stand.y+5,63,13,'#47311f52');
   const brass=c.createLinearGradient(stand.x-50,0,stand.x+50,0);brass.addColorStop(0,'#46341f');brass.addColorStop(.23,'#b68a45');brass.addColorStop(.43,'#e4c482');brass.addColorStop(.74,'#77542f');brass.addColorStop(1,'#38291b');
   if(assets.rest)drawProp(c,assets.rest,stand.x,stand.y+3,153,82);
   else ellipse(c,stand.x,stand.y,55,12,brass);
   if(hasStone(s)){
-    const y=inlay.y+o.offset*1.8;
-    c.save();c.globalCompositeOperation='screen';
-    if(o.diffuse){
-      c.translate(inlay.x,y);c.scale(2.4,.45);glow(c,0,0,28,'#fff0acbf');
-    }else if(o.visible){
-      for(const sign of [-1,1]){
-        const end=y+sign*o.split*1.55;
-        const l=c.createLinearGradient(stand.x+30,0,inlay.x,0);l.addColorStop(0,'#fff9cba6');l.addColorStop(.58,'#fff2badd');l.addColorStop(1,'#fffae1ec');
-        c.shadowColor='#ffe7aa';c.shadowBlur=6;
-        stroke(c,[[stand.x+54,stand.y-62+sign*19],[inlay.x,end]],l,4);glow(c,inlay.x,end,13,'#fff5c2d0');
-      }
-    }
-    c.restore();
-    const photo=assets[s.specimen],rotation=(s.turn-crystalAngle)*.008;
+    const endpoint=inlay.y+(reading(s)==='round'?-21:22);
+    c.save();studs(c,inlay.x,inlay.y,1);
+    c.globalCompositeOperation='screen';c.shadowColor='#ffe7aa';c.shadowBlur=6;
+    for(const sign of [-1,1])stroke(c,[[stand.x+54,stand.y-62+sign*19],[inlay.x,endpoint]],'#fff3b4',3.5);
+    glow(c,inlay.x,endpoint,13,'#fff5c2');c.restore();
+    const photo=assets.condemned,rotation=s.notch*.28;
     if(photo){
       c.save();c.translate(stand.x,stand.y-66);c.rotate(rotation);c.drawImage(photo,-77,-53,154,106);c.restore();
       if(assets.rest){
@@ -130,15 +118,13 @@ export function illustration(s,kind='bench',beat=0,canvas=document.createElement
       }
     }
     else ellipse(c,stand.x,stand.y-49,53,38,'#b4bdad');
-    if(beat>0){glow(c,stand.x-29+beat*63,stand.y-42-beat*30,14,'#ffffddb8');glow(c,inlay.x,inlay.y,12+beat*18,'#fff9d6');}
+    if(beat>0){glow(c,stand.x-29+beat*63,stand.y-42-beat*30,14,'#ffffddb8');glow(c,inlay.x,endpoint,12+beat*18,'#fff9d6');}
   }
   ellipse(c,lamp.x+4,lamp.y+4,55,12,'#452c1f60');
   if(assets.lamp)drawProp(c,assets.lamp,lamp.x,lamp.y,115,176);
   else{ellipse(c,lamp.x,lamp.y-8,35,14,brass);glow(c,lamp.x,lamp.y-58,25,'#ffc778');}
-  if(s.tested)showTileThroughLoupe(c,s);
-  const description=!hasStone(s)?'The lamp casts the shadow of an empty brass rest.':
-    o.diffuse?'The clear specimen spills a broad patch of light.':
-    s.sketch?'The lamp casts the stand’s shadow across the temple sketch.':'Quartz sits in the brass rest beside the lamp.';
+  if(hasStone(s))loupe(c,reading(s));
+  const description=hasStone(s)?'Packet '+s.packet+', notch '+(s.notch+1)+'. Two threads meet on the '+reading(s)+' stud.':'An empty sample rest beside a brass lamp.';
   canvas.setAttribute('role','img');canvas.setAttribute('aria-label',description);
   return canvas;
 }

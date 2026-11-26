@@ -1,31 +1,37 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {fresh,restore,testSpecimen,keepSpecimen,sunsetAngle,crystalAngle} from '../dist/immersive/shop/investigation.mjs';
+import {fresh,restore,trace,holdCrate,reading,ticket,packets,manifest} from '../dist/immersive/shop/investigation.mjs';
 import {stations,pathTo,walkable} from '../dist/immersive/shop/walk.mjs';
 
-test('either pair and either test order lead to a deliberate, recoverable decision',()=>{
-  for(const source of ['tray','drawerStone'])for(const first of ['approved','condemned']){
-    let s={...fresh(),[source]:true,sketch:true};
-    assert.equal(keepSpecimen(s,'condemned'),false);
-    assert.ok(testSpecimen(s,first));
-    assert.equal(keepSpecimen(s,'condemned'),false);
-    s=restore(JSON.parse(JSON.stringify(s)));
-    assert.ok(testSpecimen(s,first==='approved'?'condemned':'approved'));
-    assert.deepEqual([s.lamp,s.turn],[sunsetAngle,crystalAngle]);
-    assert.equal(keepSpecimen(s,'approved'),false);
-    assert.equal(s.phase,'shop');
-    assert.ok(keepSpecimen(s,'condemned'));
-    assert.deepEqual(restore(s),s);
-    assert.equal(testSpecimen(s,'approved'),false);
+test('only the two matching readings and their own crate can hold a shipment',()=>{
+  for(const order of ['012','021','102','120','201','210']){
+    for(const source of ['tray','drawerStone']){
+      const s={...fresh(),order,[source]:true,sketch:true};
+      for(const packet of packets){
+        s.packet=packet;s.notch=0;assert.ok(trace(s));
+        assert.equal(holdCrate(s,ticket(packet).crate),'missing');
+        s.notch=1;assert.ok(trace(s));
+      }
+      const both=packets.filter(id=>reading(s,id,0)==='round'&&reading(s,id,1)==='square');
+      assert.equal(both.length,1);
+      for(const packet of packets)for(const entry of manifest){
+        const attempt=restore({...s,packet,book:true});
+        const expected=reading(s,packet,0)!=='round'?'first':reading(s,packet,1)!=='square'?'turn':ticket(packet)!==entry?'ticket':'held';
+        assert.equal(holdCrate(attempt,entry.crate),expected);
+        assert.deepEqual(restore(attempt),attempt);
+        assert.equal(attempt.phase,expected==='held'?'film':'shop');
+      }
+    }
   }
 });
-test('an empty bench and missing sketch cannot produce a result; old finished scenes resume',()=>{
-  for(const s of [fresh(),{...fresh(),sketch:true},{...fresh(),tray:true}]){
-    assert.equal(testSpecimen(s,'approved'),false);
-    assert.equal(s.clearSeen,false);
-  }
-  assert.equal(restore({phase:'dock'}).phase,'shop');
+test('old checkpoints and incomplete tracings survive a bench revision safely',()=>{
+  assert.equal(restore({phase:'dock',sketch:true,tray:true}).phase,'dock');
   assert.equal(restore(null,{solved:true}).phase,'film');
+  assert.deepEqual(restore({phase:'shop',sketch:true,tray:true,featherSeen:true,clearSeen:true}).tracings,{});
+  const s={...fresh(),sketch:true};assert.equal(trace(s),false);
+  s.drawerStone=true;s.notch=1;trace(s);assert.equal(holdCrate(s,'14'),'missing');
+  assert.deepEqual(restore(s),s);
+  assert.deepEqual(restore({...s,tracings:{A:12,B:-1}}).tracings,{});
 });
 test('every station and the floor behind the bench have collision-free routes',()=>{
   const points=[[4.5,5.75],[6.5,2],...Object.values(stations).map(s=>s.approach)];

@@ -103,3 +103,19 @@ dialog:has(.workbench) h2{font-size:clamp(24px,4vmin,39px);line-height:44px;marg
 @media(orientation:landscape) and (max-height:440px){
   .sample-controls .actions button{flex:1 1 40%;min-width:0;padding-inline:3px}
 }
+
+.assay-goal{font:1.08rem/1.3 Georgia,serif;color:#f3e6c6}.assay-evidence{min-width:0}
+.assay-caption,.trace-line{color:#eed39c;font-size:.9rem}
+.sample-controls fieldset{border:0;padding:0;margin:8px 0;min-width:0}
+.sample-controls legend,.sample-controls summary{font-size:.88rem;color:#e4dccb}
+.sample-controls summary{padding:9px 0;cursor:pointer}
+.sample-controls .feedback:empty{display:none}
+.sample-controls .actions [aria-pressed=true]{background:#dbc697;color:#182321}
+.sample-controls .actions .manifest-entry{flex-basis:100%;text-align:left}
+@media(orientation:landscape) and (max-height:580px){
+  .assay-evidence{align-self:start;position:sticky;top:0}
+  .assay-evidence .stage{position:static}
+  .sample-controls .actions button{flex:1 1 auto}
+  .sample-controls .actions .manifest-entry{flex-basis:100%}
+}
+#content .sketch-key{background:#dfcd9f;color:#332e25;border-radius:3px;padding:.4em .6em;font:600 .9rem/1.3 Georgia,serif}

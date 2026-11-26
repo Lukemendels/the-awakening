@@ -108,6 +108,7 @@ function enterRoom(){location.assign('./shop/index.html');}
 function say(msg){$('caption').textContent=msg;setTimeout(()=>{if($('caption').textContent===msg)$('caption').textContent='';},4200);}
 /** Episodes 3–7: separate, versioned progress nested inside the existing save. */
 function resumeArc(){
+ if(state.finalArc||state.nextArc||state.arc?.episode>=4){location.replace('./season/index.html');return;}
  if(state.finalArc){resumeFinalArc();return;}
  if(state.nextArc){resumeNextArc();return;}
  if(state.arc&&!canResumeArc(state.arc)){const c=card('Journey data needs attention','This journey save cannot be read safely. It has been left unchanged; your opening and earlier game are still available.');c.append(button('Return to title',start));return;}
@@ -135,7 +136,7 @@ function enterArcRoom(resetPosition){
  else{const c=card('3D view unavailable','This browser could not start the interactive 3D view. Your progress is saved; try a device with WebGL enabled.');overlay.dataset.locked='true';c.append(button('Return to title',start));}
 }
 function nextArcEpisode(){state.arc=advanceArc(state.arc);save();state.arc.phase==='done'?arcEnd():arcCinematic('intro',0);}
-function arcEnd(){paused=true;arcPlaying=false;nextPlaying=false;stopSpeech();clear();room.hidden=true;screen.hidden=false;const page=el('article',null,'scene'),bg=el('div',null,'scene-image');bg.style.backgroundImage=`url("${imgs.canal}")`;const c=el('div',null,'scene-copy');c.append(el('p','END OF CURRENT STORY BLOCK','eyebrow'),el('h1','The investigation continues'),el('p','Kaelan, Mira and Kai have found a relationship between the crystals, the channels and the temple observations. Growing patrols mean they need a safer place to continue.'),el('p','The story continues aboard the disposal barge. Later episodes are still in development.','note'),button(state.nextArc?'Resume the next chapter':'Continue to the barge',state.nextArc?resumeNextArc:beginNextArc),button('Return to title',start,'secondary'));page.append(bg,c);screen.append(page);}
+function arcEnd(){paused=true;arcPlaying=false;nextPlaying=false;stopSpeech();clear();room.hidden=true;screen.hidden=false;const page=el('article',null,'scene'),bg=el('div',null,'scene-image');bg.style.backgroundImage=`url("${imgs.canal}")`;const c=el('div',null,'scene-copy');c.append(el('p','END OF CURRENT STORY BLOCK','eyebrow'),el('h1','The investigation continues'),el('p','Kaelan, Mira and Kai have found a relationship between the crystals, the channels and the temple observations. Growing patrols mean they need a safer place to continue.'),el('p','The story continues aboard the disposal barge.','note'),button(state.nextArc?'Resume the next chapter':'Continue to the barge',state.nextArc?resumeNextArc:beginNextArc),button('Return to title',start,'secondary'));page.append(bg,c);screen.append(page);}
 function arcDispatch(action,object){
  const result=arcAction(state.arc,action);state.arc=result.arc;save();const cue=state.arc.episode===5?'paper':state.arc.episode===7?'bell':state.arc.episode===4?'wood':'glass';if(result.changed)audio.cue(cue,object?.x??state.x,object?.y??state.y);openArcObject(object,result.message);
 }

@@ -4,6 +4,8 @@ import {clamp} from '../engine.mjs';
 export function bindShopSticks(movePad,lookPad,enabled,onTakeControl){
   const move={x:0,y:0},look={x:0,y:0},keys=new Set();
   const resetters=[];
+  const listeners=new AbortController();
+  const options={signal:listeners.signal};
   function bind(pad,axis){
     const knob=pad.querySelector('i');
     let pointer=null;
@@ -36,10 +38,10 @@ export function bindShopSticks(movePad,lookPad,enabled,onTakeControl){
     const k=e.key.toLowerCase();
     if(!enabled()||!supported.includes(k)||e.altKey||e.metaKey||e.ctrlKey)return;
     e.preventDefault();onTakeControl();keys.add(k);
-  });
-  window.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));
+  },options);
+  window.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()),options);
   function reset(){keys.clear();resetters.forEach(fn=>fn());}
-  window.addEventListener('blur',reset);
-  document.addEventListener('visibilitychange',()=>{if(document.hidden)reset();});
-  return {move,look,keys,reset};
+  window.addEventListener('blur',reset,options);
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)reset();},options);
+  return {move,look,keys,reset,dispose(){reset();listeners.abort();}};
 }

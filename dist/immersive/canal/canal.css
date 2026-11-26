@@ -34,3 +34,16 @@
 
 .water-spot{position:absolute;transform:translate(-50%,-50%);width:max(54px,13%);height:15%;min-height:44px;border:0;border-radius:50%;padding:0;color:transparent;font-size:0;background:transparent}
 .water-spot:hover{background:#c9f6e512}.water-spot:focus-visible{outline:2px solid #ffe2a5;background:#fff6d021}
+
+#discovery{font:normal clamp(1.65rem,4.3vw,3rem)/1.08 Georgia,serif;margin:.2em 0;padding:0;color:#ffe4ae}
+#discovery:focus{outline:none}
+#sequence #line{font-size:clamp(1.04rem,2.25vw,1.55rem);line-height:1.38;max-width:40em}
+#sequence{background:#132025;overflow:auto}
+#sequence[data-beat=match]{background:linear-gradient(95deg,#101e24cc,#112027f7 75%),url('../../assets/generated/barge-overlook.webp') center/cover;display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);align-items:center;gap:3vw;padding:clamp(14px,3vw,44px)}
+#match-art canvas{display:block;width:100%;border-radius:3px}
+#sequence[data-beat=match] #film-copy{position:static;padding:0;background:none}
+@media(orientation:portrait){
+  #sequence[data-beat=match]{grid-template-columns:1fr;align-content:center;gap:1.25rem;padding:6vw}
+}
+
+#sequence button{touch-action:manipulation}

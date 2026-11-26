@@ -60,12 +60,27 @@ export function drawBoard(ctx,flags,pose){
   // The temple page marks only where the pulse landed; the water supplies the rays.
   ctx.strokeStyle='#866e52';ctx.lineWidth=1.7;ctx.beginPath();ctx.ellipse(target.x,target.y,15,11,-.1,0,Math.PI*2);ctx.stroke();
   ctx.font='italic 13px Georgia';ctx.fillText('brass inlay',target.x+24,target.y+34);
-  if(flags.near_view)linework(ctx,target.x,target.y,0,1,'#40392c',3.7);
+  if(flags.near_view){
+    ctx.fillText('Lower steps',target.x-115,target.y-65);
+    linework(ctx,target.x,target.y,0,1,'#40392c',4.8);
+  }
   if(flags.far_view){
     ctx.save();ctx.translate(pose.x,pose.y);ctx.rotate(pose.angle*Math.PI/180);
     ctx.shadowColor='#352d2266';ctx.shadowBlur=6;ctx.fillStyle='rgba(255,246,213,.38)';
     ctx.fillRect(-145,-78,226,155);ctx.shadowBlur=0;ctx.strokeStyle='#947b5566';ctx.lineWidth=1;
-    ctx.strokeRect(-145,-78,226,155);ctx.restore();
+    ctx.strokeRect(-145,-78,226,155);
+    ctx.fillStyle='#315952';ctx.fillText('Gate overlook',-125,66);ctx.restore();
     linework(ctx,pose.x,pose.y,pose.angle,1,'#316d70',3);
   }
+}
+
+// On a confirmed match, keep both inks visible and bring the tiny nick into focus.
+export function drawMatch(ctx){
+  ctx.save();ctx.translate(400,225);ctx.scale(2.25,2.25);ctx.translate(-399,-231);
+  drawBoard(ctx,{near_view:true,far_view:true},{...target,angle:0});
+  ctx.lineWidth=1.8;ctx.strokeStyle='#98601e';
+  for(const [x,y,r] of [[0,0,13],[-59,-35,10]]){
+    ctx.beginPath();ctx.arc(target.x+x,target.y+y,r,0,Math.PI*2);ctx.stroke();
+  }
+  ctx.restore();
 }

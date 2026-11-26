@@ -1,9 +1,24 @@
 import * as T from './vendor/three.module.js';
+export class RoomRenderer {
+ constructor(canvas){
+  this.canvas=canvas;
+  this.renderer=new T.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});
+  this.renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.3));
+  this.renderer.outputColorSpace=T.SRGBColorSpace;
+  this.renderer.toneMapping=T.ACESFilmicToneMapping;
+  this.renderer.toneMappingExposure=.95;
+  this.scene=new T.Scene();
+  this.camera=new T.PerspectiveCamera(68,1,.05,40);
+ }
+}
+
 /** An authored, walkable 3D shop. Coordinates match engine.mjs's collision map. */
-export class Room3D {
+export class Room3D extends RoomRenderer {
  constructor(canvas,{cutaway=false,benchOffset=0,canalImage='../assets/6_Night Canal.webp'}={}){
-  this.canvas=canvas;this.renderer=new T.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});this.renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.3));this.renderer.outputColorSpace=T.SRGBColorSpace;this.renderer.toneMapping=T.ACESFilmicToneMapping;this.renderer.toneMappingExposure=.95;
-  this.scene=new T.Scene();this.scene.background=new T.Color(0x102b36);this.scene.fog=new T.Fog(0x1c3033,8,22);this.camera=new T.PerspectiveCamera(68,1,.05,40);this.scene.add(new T.HemisphereLight(0x8ccddd,0x342014,.95));
+  super(canvas);
+  this.scene.background=new T.Color(0x102b36);
+  this.scene.fog=new T.Fog(0x1c3033,8,22);
+  this.scene.add(new T.HemisphereLight(0x8ccddd,0x342014,.95));
   const ambient=new T.AmbientLight(0xb5a38a,.3);this.scene.add(ambient);
   const sun=new T.DirectionalLight(0xffdc9d,1.4);sun.position.set(8,4,3);this.scene.add(sun);
   const lamp=new T.PointLight(0xffbb59,10,6,2);lamp.position.set(7.05,1.35,1.58);this.scene.add(lamp);

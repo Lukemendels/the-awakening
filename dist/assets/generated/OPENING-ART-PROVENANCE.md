@@ -15,3 +15,7 @@ The first-person inspector scene uses `inspector-at-the-door.webp`, generated wi
 The companion shots `condemned-tag.webp` and `disposal-barge.webp` were generated with the same tool, using the existing shop and night canal illustrations as references, respectively. The close-up shows Kaelan turning the shipment tag. The canal shot shows the rejected cargo passing the dock.
 
 The interactive light bench uses a photographic background plate and separate transparent lamp, brass cradle and quartz layers generated with OpenAI image generation. The shop opening and condemned tag stills supplied the visual references. The approved specimen used the feathered specimen as its reference. The game draws the moving shadow and streaks at runtime. The light bench study is a frame captured from the playable scene.
+
+The walkable shop uses eight WebP textures generated with OpenAI image generation. `shop-survey-wall` and `shop-entry-wall` depict the two end walls. `shop-study-wall` depicts the notebook wall. `shop-field-notes` and `shop-runner` dress the journal and woven rug. `shop-canal-view` supplies the distant scenery beyond the window. `shop-walnut` and `shop-limewash` supply surface detail for the modeled interior. A small reflection map samples the four room views. The engine lights the modeled furniture, brasswork, and specimens, with the playable quartz artwork supplying the visible inclusions.
+
+`shop-interior-study.webp` is a frame captured from the walkable shop during playtesting.

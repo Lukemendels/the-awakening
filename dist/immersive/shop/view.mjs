@@ -1,5 +1,5 @@
 import * as T from '../vendor/three.module.js';
-import {Room3D} from '../room3d.mjs';
+import {ShopInterior} from './interior.mjs';
 import {clamp,wrapAngle} from '../engine.mjs';
 import {bindShopSticks} from './sticks.mjs';
 import {stations,pathTo,walkable} from './walk.mjs';
@@ -10,32 +10,11 @@ const maxHorizontalFov=T.MathUtils.degToRad(82);
 const yawRate=T.MathUtils.degToRad(80),pitchRate=T.MathUtils.degToRad(48);
 function stickResponse(axis){return axis*(.35+.65*Math.abs(axis));}
 
-function wallChart(){
-  const paper=document.createElement('canvas');paper.width=480;paper.height=240;
-  const pen=paper.getContext('2d');
-  pen.fillStyle='#a99064';pen.fillRect(0,0,480,240);
-  pen.strokeStyle='#554a36';pen.lineWidth=2;pen.strokeRect(9,9,462,222);pen.strokeRect(15,15,450,210);
-  for(const radius of [20,39,62,86]){
-    pen.beginPath();pen.ellipse(190,120,radius*1.4,radius,-.22,0,Math.PI*2);pen.stroke();
-  }
-  for(const height of [62,83,124,166]){
-    pen.beginPath();pen.moveTo(25,height);pen.bezierCurveTo(140,height-55,270,height+64,448,height-2);pen.stroke();
-  }
-  pen.fillStyle='#493b2c';pen.font='16px Georgia';pen.fillText('ATLANTIS',340,199);
-  const texture=new T.CanvasTexture(paper);texture.colorSpace=T.SRGBColorSpace;
-  const chart=new T.Mesh(new T.PlaneGeometry(2.35,1.17),new T.MeshStandardMaterial({map:texture,roughness:1}));
-  chart.position.set(4.57,1.78,1.09);return chart;
-}
-
 export class ShopView {
   constructor(canvas,markers,onArrive,onMessage,audio){
     this.audio=audio;
     this.canvas=canvas;this.onArrive=onArrive;this.onMessage=onMessage;
-    this.room=new Room3D(canvas,{benchOffset:1.5,canalImage:'../../assets/6_Night Canal.webp'});
-    this.room.scene.fog=null;
-    this.room.specimen.visible=true;
-    this.room.scene.add(wallChart());
-    this.room.scene.background=new T.Color(0x122e34);
+    this.room=new ShopInterior(canvas);
     this.ray=new T.Raycaster();
     this.target=new T.Vector3();this.projected=new T.Vector3();this.resolution='';
     this.reduce=matchMedia('(prefers-reduced-motion: reduce)');

@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0b2025"><title>The Awakening · The light bench</title><link rel="stylesheet" href="shop.css"><link rel="icon" type="image/png" href="../awakening-icon.png"></head>
+<body><main>
+<section id="arrival"><div class="intro-copy"><p class="kicker">Kaelan’s shop · Before the collection</p><h1>The collector is here</h1><p>Father sets three cloudy stones beside your lamp. “They’ve condemned the whole shipment, Kaelan. Show me one that did what you saw at the temple, and I can keep its crate.”</p><div id="memory"></div><button id="enter" class="primary" disabled>Take a seat at the lamp</button></div></section>
+<section id="room" hidden><canvas id="world" aria-label="First-person view of Kaelan’s shop"></canvas><div id="markers"></div>
+<header><span id="mode">Kaelan’s shop</span><nav><button id="voice" aria-pressed="false">Sound off</button><button id="journal">Journal</button></nav></header>
+<div class="shop-pad" id="move-pad" aria-label="Walk and strafe"><i></i><span>Walk</span></div>
+<div class="shop-pad" id="look-pad" aria-label="Turn and look"><i></i><span>Look</span></div>
+<button id="ticket-in-hand" hidden aria-pressed="false"></button><footer><p id="guide" role="status"></p><nav id="destinations" aria-label="Shop destinations" hidden></nav></footer></section>
+<dialog id="panel"><div class="paper"><button id="close" aria-label="Return to shop">Close</button><p class="kicker" id="panel-label"></p><h2 id="heading"></h2><div id="content"></div></div></dialog>
+<section id="sequence" hidden aria-label="Story sequence"><div id="shot-art"></div><div id="shot-table"></div><div id="film-copy"><p class="kicker" id="speaker"></p><p id="line" role="status"></p><div class="actions"><button id="next-shot">Continue</button><button id="dock-action" class="primary" hidden>Inspect the barge reflection</button><button id="revisit" hidden>Revisit the shop</button></div></div></section>
+<p id="storage-error" role="status" hidden>This browser could not save progress. Keep the tab open to finish.</p>
+</main><script type="module" src="shop.mjs"></script></body></html>

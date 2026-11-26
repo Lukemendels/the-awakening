@@ -145,7 +145,7 @@ export class ShopView {
     for(const [b,s] of this.pins){
       const p=this.projected.set(...s.point).project(camera);
       const px=(p.x+1)*w/2,py=(1-p.y)*h/2;
-      b.hidden=moving||Math.hypot(x-s.point[0],z-s.point[2])>(s.walkThrough?7:2.65)||p.z>1||p.z< -1||px<22||px>w-22||py<62||py>h-65;
+      b.hidden=moving||Math.hypot(x-s.point[0],z-s.point[2])>(s.reach??(s.walkThrough?7:2.65))||p.z>1||p.z< -1||px<22||px>w-22||py<62||py>h-65;
       if(!b.hidden){b.style.left=px+'px';b.style.top=py+'px';}
     }
     this.room.update?.(time,this.reduce.matches);

@@ -5,7 +5,7 @@ import {manifest} from './investigation.mjs';
 
 export const cargo=manifest.map((entry,i)=>({...entry,x:3.43+i*1.11,z:1.52}));
 export const freightStations={...stations};
-for(const item of cargo)freightStations['crate-'+item.crate]={label:'Crate '+item.crate,mark:item.crate,point:[item.x,.78,item.z+.41],approach:[item.x,2.43]};
+for(const item of cargo)freightStations['crate-'+item.crate]={label:'Crate '+item.crate,mark:item.crate,reach:6,point:[item.x,.78,item.z+.41],approach:[item.x,2.43]};
 freightStations.window={label:'Canal window',mark:'≈',point:[7.79,1.55,3.51],approach:[6.65,3.95]};
 export const loadingWalkable=(x,z)=>walkable(x,z)&&cargo.every(c=>Math.abs(c.x-x)>.68||Math.abs(c.z-z)>.61);
 

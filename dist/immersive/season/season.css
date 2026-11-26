@@ -46,3 +46,40 @@
   #panel .photo-apparatus legend,#panel .photo-apparatus p{font-size:.92rem}
   #panel .photo-apparatus button{padding:6px 9px}
 }
+
+/* The button gets its own row even when the transcript is open or text is enlarged. */
+#sequence{display:grid;grid-template-columns:minmax(0,1.38fr) minmax(0,1fr);height:100vh;height:100dvh;overflow:hidden;background:#0a1b20}
+#shot-art{position:relative;inset:auto;display:grid;place-items:center;overflow:hidden;min-height:0;container-type:size}
+.film-frame{position:relative;width:100%;width:min(100cqw,177.78cqh);aspect-ratio:16/9;overflow:hidden}
+.film-frame>img{width:100%;height:100%;object-fit:cover;display:block}
+#shot-art[data-effect=""] .film-frame,#shot-art[data-effect="seam"] .film-frame{width:100%;height:100%;aspect-ratio:auto}
+#film-copy{position:static;inset:auto;width:auto;height:auto;min-height:0;display:grid;grid-template-rows:minmax(0,1fr) auto;gap:.55rem;padding:clamp(12px,3vw,48px);padding-bottom:max(14px,env(safe-area-inset-bottom));padding-right:max(16px,env(safe-area-inset-right));background:#0a1b20}
+#film-scroll{min-height:0;overflow-y:auto;overscroll-behavior:contain;align-content:safe center;scrollbar-width:thin}
+#film-copy #next{justify-self:start;align-self:end;margin:0;min-height:44px}
+#film-copy h2{padding:0}#dialogue details[open]{max-height:none;overflow:visible}#dialogue summary{min-height:30px}
+#film-copy #lead:empty{display:none}
+@media(orientation:portrait){#sequence{grid-template-columns:1fr;grid-template-rows:minmax(120px,44%) minmax(0,1fr)}#film-copy{padding:16px max(18px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom))}}
+.proof,.seam-slab{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.proof{filter:drop-shadow(0 1px 3px #101b1a)}
+.proof path,.proof .notch{fill:none;stroke-linecap:round}
+.carved{stroke:#ffdd91;stroke-width:4}.projected,.current{stroke:#b5fff5;stroke-width:2.8;stroke-dasharray:1;animation:trace-light 1.05s ease-out both}
+.notch{stroke:#f5efab;stroke-width:2}.receiver{fill:#b5fff5;stroke:#f9d779;stroke-width:3;animation:light-ring .3s both}
+.r1{animation-delay:.5s}.r2{animation-delay:1s}
+.seam-slab{background-size:cover;background-position:center;animation:slab-left 1.45s .15s cubic-bezier(.55,.12,.25,.98) both}
+.seam-slab.left{clip-path:polygon(0 0,51% 0,49% 35%,51% 63%,49% 100%,0 100%)}
+.seam-slab.right{clip-path:polygon(51% 0,100% 0,100% 100%,49% 100%,51% 63%,49% 35%);animation-name:slab-right}
+.reply-light{position:absolute;left:69%;top:32%;width:4%;aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(#fff9cf 2%,#ffce7899 20%,transparent 70%);animation:answer-light 1.6s .8s both}
+[data-effect="return"] .reply-light{left:43%;top:29%;width:7%;animation-delay:.15s}
+@keyframes trace-light{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+@keyframes light-ring{from{fill:#3d413e}to{fill:#b5fff5}}
+@keyframes slab-left{to{transform:translateX(-55%)}}
+@keyframes slab-right{to{transform:translateX(55%)}}
+@keyframes answer-light{0%{opacity:0}55%{opacity:1}100%{opacity:.68}}
+@media(prefers-reduced-motion:reduce){.projected,.current,.receiver,.reply-light{animation:none}.seam-slab{display:none}}
+#film-actions{display:flex;gap:8px;align-items:stretch}
+#film-actions button{min-height:44px;margin:0}
+#film-actions #back-beat{flex:0 0 44px;font-size:1.45rem;line-height:1}
+.quiet-shore{position:absolute;inset:0;background:radial-gradient(ellipse 14% 39% at 69% 42%,#182233ed 8%,#182338b5 35%,transparent 79%);animation:shore-wakes 1.4s .75s both}
+.answered-water{position:absolute;left:65%;top:50%;width:6%;height:24%;background:radial-gradient(ellipse,#edc17d80,transparent 70%);animation:answer-light 1.5s 1.2s both}
+@keyframes shore-wakes{to{opacity:0}}
+@media(prefers-reduced-motion:reduce){.quiet-shore{display:none}.answered-water{animation:none}}

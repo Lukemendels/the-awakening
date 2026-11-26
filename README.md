@@ -41,3 +41,6 @@ See [CREDITS.md](CREDITS.md) for attribution and artwork provenance. Suggested c
 Play Season One from the title, or [start at Kaelan’s shop](dist/immersive/shop/index.html). Walk and strafe with the left stick, look with the right stick, or use WASD and the arrow keys. Tap a station to approach it. Touch either stick to take over. At the bench, drag the brass lamp to move the stand’s shadow across the sketch, then roll the quartz with a finger. Fine controls provide keyboard sliders and step buttons. The first pulse saves the discovery and starts the inspector scene automatically. The dock reflection leads directly into the water-gate investigation.
 
 The opening remembers the bench, cinematic shot, and dock on this device. Sound is optional, and the cutscene has captions and a pause control. Use **Replay the opening** on the season title to revisit the investigation while retaining later episode progress.
+
+To package the season with captions and optional device narration, run
+`python3 tools/package-season.py awakening-season-one.zip`. The archive contains the static game and its notices. The playtest recording is excluded. Extract the archive and serve its root over HTTP.

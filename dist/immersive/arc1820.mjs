@@ -19,13 +19,13 @@ export const arc1820Scenes=[
  outro:[{speaker:'Mira',text:'Each flawed crystal we saved was engineered to respond to specific astronomical alignments.'},{speaker:'Narrator',text:'Kai’s charts reveal the city’s rings as a vast detection array. Mira’s mountings had recreated ancient configurations.'},{speaker:'Order leader',text:'The merchant houses corrupted these tools of protection, turning them into means of control.'}],
  objects:[{id:'founding-memory',label:'Founding memory',x:2,y:2,description:'Pause over the water’s image of an earlier civilization.',choices:[{id:'observe',label:'Watch the founding memory'}]},{id:'crystal-memory',label:'Crystal correspondence',x:6.7,y:2,description:'Consider the saved crystals and the sky together.',choices:[{id:'observe',label:'Watch the crystal memory'}]},{id:'rings-memory',label:'City-ring memory',x:2,y:5,description:'Look at Kai’s observations in the light of the Order’s explanation.',choices:[{id:'observe',label:'Watch the ring memory'}]},{id:'continue-memory',label:'Flowing water',x:4.5,y:3.6,description:'When ready, allow the memory to continue.',choices:[{id:'continue',label:'Continue the memory'}]}],hints:['You may pause at any vision, or continue. There is no test to pass.']}
 ];
-const keys=['markers','instrument','comparison','shaft','robes','resonance','approached','founding','crystal','rings','continued'];
+const keys=['registered','markers','instrument','comparison','shaft','robes','resonance','approached','founding','crystal','rings','continued'];
 export function freshArc1820(){return {version:1,episode:18,flags:{},journal:[],hints:{}};}
 export function canResumeArc1820(s){
  if(!s||typeof s!=='object'||Array.isArray(s)||Object.keys(s).some(k=>!['version','episode','flags','journal','hints'].includes(k))||s.version!==1||![18,19,20,21].includes(s.episode))return false;
  if(!s.flags||typeof s.flags!=='object'||Array.isArray(s.flags)||Object.entries(s.flags).some(([k,v])=>!keys.includes(k)||v!==true))return false;
  if(!Array.isArray(s.journal)||s.journal.length>12||s.journal.some(x=>typeof x!=='string'||x.length>400)||!s.hints||typeof s.hints!=='object'||Array.isArray(s.hints)||Object.entries(s.hints).some(([k,v])=>!['18','19','20'].includes(k)||!Number.isInteger(v)||v<1||v>3))return false;
- const f=s.flags;if(f.comparison&&!(f.markers||f.instrument)||s.episode>=19&&!f.comparison||s.episode>=20&&!f.approached||s.episode===21&&!f.continued)return false;
+ const f=s.flags;if(f.registered&&!f.markers&&!f.instrument||f.comparison&&!(f.markers||f.instrument)||s.episode>=19&&!f.comparison||s.episode>=20&&!f.approached||s.episode===21&&!f.continued)return false;
  if(s.episode<19&&(f.robes||f.resonance||f.approached)||s.episode<20&&(f.founding||f.crystal||f.rings||f.continued))return false;
  return true;
 }
@@ -37,6 +37,12 @@ export function arc1820Act(previous,action){
  if(!action||typeof action!=='object'||!scene)return {state:s,message,changed,complete:complete(s)};
  if(action.type==='hint'){const n=Math.min((s.hints[s.episode]||0)+1,scene.hints.length);changed=n!==(s.hints[s.episode]||0);s.hints[s.episode]=n;return {state:s,message:scene.hints[n-1],changed,complete:complete(s)};}
  if(action.type==='advance'){if(!complete(s))return {state:s,message:'There is more to consider before continuing.',changed:false,complete:false};s.episode++;return {state:s,message:'',changed:true,complete:true};}
+ if(s.episode===18&&action.type==='register'){
+  if(!s.flags.markers&&!s.flags.instrument)message='Bring a reading from the stone or the instrument before laying down the tracing.';
+  else if(!Number.isFinite(action.offset)||Math.abs(action.offset)>3)message='The two punched holes still miss the fixed stone notches.';
+  else{changed=add(s,'registered','The two holes fit the fixed notches. The brass pointer crosses the rim beyond the dust arc.');message='Both notches fit. At the rim, the pointer has passed the clean crescent in the dust.';}
+  return {state:s,message,changed,complete:complete(s)};
+ }
  if(action.type!=='interact'||!scene.objects.some(o=>o.id===action.id&&o.choices.some(c=>c.id===action.choice)))return {state:s,message:'',changed:false,complete:complete(s)};
  const {id,choice}=action,f=s.flags;
  if(s.episode===18){
@@ -45,6 +51,7 @@ export function arc1820Act(previous,action){
   if(id==='comparison'){
    if(choice==='unknown')message='There is time to look again; the guards’ convergence is not a countdown.';
    else if(!f.markers&&!f.instrument)message='Examine an alignment or an instrument before drawing a conclusion.';
+   else if(!f.registered)message='Fit the two holes in the tracing over the stone notches before comparing the pointer.';
    else if(choice==='original')message='The stone joints are intact, while the clean arc and displaced dust lie around the instrument’s ring. Consider which part moved.';
    else {changed=add(s,'comparison','The instrument was recently modified against the ancient star alignment.');message='The modified setting and disturbed dust contrast with the ancient alignment. Someone has been trying to change the mechanism.';}
   }

@@ -2,7 +2,7 @@ import {ShopView} from './view.mjs';
 import {stations} from './walk.mjs';
 import {fresh,restore,hasStone,expose,projection,sunsetAngle} from './investigation.mjs';
 import {illustration,loadBenchArt,propAt,dragLamp} from './optics.mjs';
-import {loadSave,writeSave} from '../save.mjs';
+import {loadSave,writeSave,journeyUrl,playtestRun} from '../save.mjs';
 import {CinematicClock} from '../cinematic.mjs';
 import {ImmersiveAudio} from '../audio.mjs';
 
@@ -11,7 +11,7 @@ const dialog=$('panel'),content=$('content');
 const storage={getItem:k=>localStorage.getItem(k),setItem:(k,v)=>localStorage.setItem(k,v)};
 const journey=loadSave(storage);
 let state=restore(journey.shopOpening,journey.flags);
-if(!journey.shopOpening && !journey.flags.solved){
+if(!playtestRun&&!journey.shopOpening && !journey.flags.solved){
   // The camera trial used independent saves. Carry any collected first-person props forward.
   try{
     const old=JSON.parse(storage.getItem('awakening-shop-trial-v1-first'))?.state;
@@ -202,7 +202,7 @@ function dock(){
 $('revisit').onclick=()=>{
   state=fresh();view=null;save();location.reload();
 };
-$('dock-action').onclick=()=>{location.assign('../canal/index.html');};
+$('dock-action').onclick=()=>{location.assign(journeyUrl('../canal/index.html'));};
 $('pause-film').onclick=()=>{
   if(!film)return;pausedByPlayer=!pausedByPlayer;
   if(pausedByPlayer){film.pause();window.speechSynthesis?.pause();}else{film.play();window.speechSynthesis?.resume();}

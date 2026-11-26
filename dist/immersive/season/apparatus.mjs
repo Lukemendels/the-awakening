@@ -20,17 +20,32 @@ function surface(ep,description){
   root.append(scene,legend,actions);return {root,scene,marks,actions,legend};
 }
 const amber='#ffdd91',blue='#aaf6ed';
-const fork='M77 126 Q124 104 201 80 Q251 61 307 74 M201 80 Q235 81 260 111 l12 -3 19 14';
+export const fork='M77 126 Q124 104 201 80 Q251 61 307 74 M201 80 Q235 81 260 111 l12 -3 19 14';
 function junction(s,choose){
   const f=surface(12,'The gold tracing follows the carved channels. The pale projection comes from the array.');
   stroke(f.marks,fork,'#403424',8);stroke(f.marks,fork,amber,3);
   const offsets={west:-60,center:0,east:61};if(s.placement in offsets){
     stroke(f.marks,fork,blue,2.7,{transform:'translate('+offsets[s.placement]+' 0)','stroke-dasharray':'9 5'});
-    const p=draw(f.marks,'circle',{cx:201+offsets[s.placement],cy:80,r:12,fill:'none',stroke:blue,'stroke-width':2});
-    p.setAttribute('aria-hidden','true');
   }else f.legend.textContent+=' The stone is dark.';
-  const trace=()=>choose('trace');f.scene.onclick=trace;f.scene.style.cursor='pointer';
-  f.actions.append(btn('Trace the junction',trace));return f.root;
+  const points=[[77,126,'Foot of the channel'],[201,80,'Fork in the channel'],[260,111,'Nick on the short branch']];
+  const pin=draw(f.marks,'circle',{r:8,fill:'none',stroke:'#fff0c7','stroke-width':2,visibility:'hidden'});
+  const note=document.createElement('p');note.setAttribute('role','status');f.root.append(note);
+  function markPoint(x,y){
+    pin.setAttribute('cx',x);pin.setAttribute('cy',y);pin.setAttribute('visibility','visible');
+    if(Math.hypot(x-201,y-80)>22){note.textContent='A single cut passes under your fingertip here. Where does it divide?';return;}
+    choose('trace');
+  }
+  f.legend.textContent+=' Mark the place where the projected fork meets the carved fork.';
+  f.scene.onclick=e=>{
+    const matrix=f.marks.getScreenCTM();if(!matrix)return;
+    const point=new DOMPoint(e.clientX,e.clientY).matrixTransform(matrix.inverse());
+    markPoint(point.x,point.y);
+  };
+  f.scene.style.cursor='crosshair';
+  const details=document.createElement('details'),summary=document.createElement('summary');
+  summary.textContent='Choose a landmark by name';details.append(summary);
+  for(const [x,y,label] of points)details.append(btn(label,()=>markPoint(x,y)));
+  f.actions.append(details);return f.root;
 }
 function bearing(s,choose){
   const f=surface(14,'The water curves toward the outlet. Turn the mounted crystal until the light follows the same bend.');
@@ -44,24 +59,49 @@ function bearing(s,choose){
   f.actions.append(btn('Pass light through the array',()=>choose(Math.abs(+range.value)<=9?'turn-a':'turn-b')));
   option(f.actions,'Lift the array','take',choose);return f.root;
 }
-function distribution(s,choose){
+function distribution(s,choose,previousPulse){
   const f=surface(23,'Follow a channel from the central source. The brass rings mark the inner district and the outer receiver.');
   const points=[[72,112],[205,62],[328,111]];
   stroke(f.marks,'M72 112 Q155 178 328 111',s.route==='bypass'?blue:'#dfd1ae',s.route==='bypass'?5:2);
   stroke(f.marks,'M72 112 Q120 67 205 62 Q270 52 328 111',s.route==='linked'?blue:'#dfd1ae',s.route==='linked'?5:2);
   for(const [i,[x,y]] of points.entries()){
-    draw(f.marks,'circle',{cx:x,cy:y,r:11,fill:i===0||s.route==='linked'||(i===2&&s.route==='bypass')?blue:'#40403a',stroke:amber,'stroke-width':3});
+    draw(f.marks,'circle',{cx:x,cy:y,r:11,fill:i===0||(i===2&&previousPulse==='bypass'&&s.route==='bypass')?blue:'#40403a',stroke:amber,'stroke-width':3});
     const label=draw(f.marks,'text',{x,y:y-18,'text-anchor':'middle',fill:'#fff1cd',stroke:'#182326','stroke-width':3,'paint-order':'stroke','font-size':13});label.textContent=['Source','Inner ring','Receiver'][i];
   }
   option(f.actions,'Open the direct channel','bypass',choose);option(f.actions,'Open the inner-ring channel','linked',choose);option(f.actions,'Send a pulse','observe',choose);return f.root;
 }
-function register(s,choose){
-  const f=surface(18,'The fixed notch crosses two joined stones. Slide the tracing over the instrument and compare their bearings.');
-  const base='M108 130 L291 48';stroke(f.marks,base,amber,3);
-  stroke(f.marks,'M106 130 L295 82',blue,4);stroke(f.marks,'M291 48 Q313 62 295 82','#f5f0ce',2,{'stroke-dasharray':'3 4'});
-  const foil=stroke(f.marks,base,'#fff3c6',2,{'stroke-dasharray':'6 4'});
-  const r=document.createElement('input');r.type='range';r.min='-40';r.max='40';r.value='-28';r.setAttribute('aria-label','Slide the tracing');const show=()=>foil.setAttribute('transform','translate('+r.value+' 0)');r.oninput=show;show();f.root.insertBefore(r,f.actions);
-  option(f.actions,'The instrument turned','altered',choose);option(f.actions,'The stones shifted','original',choose);option(f.actions,'Leave the comparison open','unknown',choose);return f.root;
+export function comparisonInstrument(s,dispatch){
+  const choose=choice=>dispatch({type:'interact',id:'comparison',choice});
+  const f=surface(18,'Fit both punched holes in the tracing over the fixed notches on the stone.');
+  const fixed='M108 130 L291 48';
+  stroke(f.marks,fixed,amber,3);
+  for(const [x,y] of [[108,130],[291,48]])draw(f.marks,'circle',{cx:x,cy:y,r:3,fill:amber});
+  const pointer=stroke(f.marks,'M108 130 L295 82',blue,4);
+  const dust=stroke(f.marks,'M291 48 Q313 62 295 82','#f5f0ce',3,{'stroke-dasharray':'3 4'});
+  const foil=draw(f.marks,'g',{});
+  stroke(foil,fixed,'#fff3c6',2,{'stroke-dasharray':'6 4'});
+  for(const [x,y] of [[108,130],[291,48]])draw(foil,'circle',{cx:x,cy:y,r:7,stroke:'#fff9e9',fill:'none','stroke-width':2});
+  const matched=!!s.flags.registered;
+  const range=document.createElement('input');range.type='range';range.min='-40';range.max='40';range.value=matched?'0':'-28';
+  range.setAttribute('aria-label','Slide the tracing');range.disabled=matched;
+  const paint=()=>{
+    const offset=Number(range.value);foil.setAttribute('transform','translate('+offset+' 0)');
+    const aligned=Math.abs(offset)<=3;pointer.setAttribute('opacity',aligned?'1':'.32');dust.setAttribute('opacity',aligned?'1':'.08');
+    range.setAttribute('aria-valuetext',aligned?'Both notches line up':offset<0?'Holes left of the notches':'Holes right of the notches');
+  };
+  range.oninput=paint;paint();
+  if(!s.flags.markers&&!s.flags.instrument){
+    f.legend.textContent='The tracing is blank at the rim. Take a reading at the stone markers or the brass instrument.';
+    return f.root;
+  }
+  if(!matched){
+    f.root.insertBefore(range,f.actions);
+    f.actions.append(btn('Hold the tracing to the stone',()=>dispatch({type:'register',offset:Number(range.value)})));
+  }else{
+    f.legend.textContent='The holes fit both stones. The pointer crosses the rim beyond the clean crescent. What moved?';
+    option(f.actions,'The instrument turned','altered',choose);option(f.actions,'The stones shifted','original',choose);
+  }
+  return f.root;
 }
 function chart(s,choose){
   const f=surface(8,'Two waterways leave the mooring. A light beside a route marks a signal Kaelan has actually seen.');
@@ -94,12 +134,11 @@ function cityModel(s,choose){
   const readings=document.createElement('div');readings.className='actions';
   option(readings,'The rings connect architecture, water and resonance','resonance',choose);option(readings,'The rings mark trade routes alone','trade-only',choose);option(readings,'These records are unrelated','unrelated',choose);f.root.append(readings);return f.root;
 }
-export function photoApparatus(ep,id,state,choose){
+export function photoApparatus(ep,id,state,choose,previousPulse){
   if(ep===8&&id==='route-chart')return chart(state,choose);
   if(ep===10&&id==='city-model')return cityModel(state,choose);
   if(ep===12&&id==='junction')return junction(state,choose);
   if(ep===14&&id==='grammar')return bearing(state,choose);
-  if(ep===18&&id==='comparison')return register(state,choose);
-  if(ep===23&&id==='distribution')return distribution(state,choose);
+  if(ep===23&&id==='distribution')return distribution(state,choose,previousPulse);
   return null;
 }

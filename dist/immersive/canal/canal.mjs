@@ -2,7 +2,7 @@ import {ShopView} from '../shop/view.mjs';
 import {quay} from './quay.mjs';
 import {sights,sheetPose,registered,drawSight,drawBoard,drawMatch,loadPlates} from './tracings.mjs';
 import {arcAction,freshArc,canResumeArc,restoreArc,beginOutro,advanceArc} from '../arc-progress.mjs';
-import {loadSave,writeSave} from '../save.mjs';
+import {loadSave,writeSave,journeyUrl} from '../save.mjs';
 import {ImmersiveAudio} from '../audio.mjs';
 
 const $=id=>document.getElementById(id),panel=$('panel'),content=$('content');
@@ -170,7 +170,7 @@ const ending=[
 ];
 function continueStory(){
   if(leaving)return;
-  arc=advanceArc(arc);save();leaving=true;location.assign('../index.html#continue-journey');
+  arc=advanceArc(arc);save();leaving=true;location.assign(journeyUrl('../index.html#continue-journey'));
 }
 function reveal(){
   if(panel.open)panel.close();view?.stop();$('room').hidden=true;$('sequence').hidden=false;audio.setRoomLevel(.28);
@@ -210,7 +210,7 @@ nextButton.addEventListener('touchend',e=>{
   if(Math.hypot(end.clientX-start.clientX,end.clientY-start.clientY)<16&&
      document.elementFromPoint(end.clientX,end.clientY)===nextButton)nextButton.click();
 },{passive:false});
-$('enter').onclick=enter;$('journal').onclick=()=>inspect('journal');$('close').onclick=close;
+$('enter').onclick=enter;$('enter').disabled=false;$('journal').onclick=()=>inspect('journal');$('close').onclick=close;
 panel.addEventListener('cancel',e=>{e.preventDefault();close();});
 document.addEventListener('visibilitychange',()=>{
   audio.setHidden(document.hidden);

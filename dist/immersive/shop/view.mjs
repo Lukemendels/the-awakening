@@ -63,7 +63,7 @@ export class ShopView {
   go(to,id){
     const [x,,z]=this.layout.stations[id].point;
     const inReach=Math.hypot(this.pos[0]-x,this.pos[1]-z)<=1.3;
-    const path=inReach?[]:pathTo(this.pos,to,this.layout.walkable);
+    const path=inReach&&!this.layout.stations[id].walkThrough?[]:pathTo(this.pos,to,this.layout.walkable);
     if(!path){this.onMessage('Move clear of the furniture and try again.');return;}
     this.input.reset();this.path=path;this.arrival=id;
     this.onMessage('Approaching '+this.layout.stations[id].label.toLowerCase()+'…');
@@ -135,11 +135,12 @@ export class ShopView {
     for(const [b,s] of this.pins){
       const p=this.projected.set(...s.point).project(camera);
       const px=(p.x+1)*w/2,py=(1-p.y)*h/2;
-      b.hidden=moving||Math.hypot(x-s.point[0],z-s.point[2])>2.65||p.z>1||p.z< -1||px<22||px>w-22||py<62||py>h-65;
+      b.hidden=moving||Math.hypot(x-s.point[0],z-s.point[2])>(s.walkThrough?7:2.65)||p.z>1||p.z< -1||px<22||px>w-22||py<62||py>h-65;
       if(!b.hidden){b.style.left=px+'px';b.style.top=py+'px';}
     }
     this.room.update?.(time,this.reduce.matches);
     this.room.renderer.render(this.room.scene,camera);
+    if(this.layout.crossed?.(x,z)){this.arrival=null;this.onArrive('passage');return;}
     if(facing&&!this.path.length&&this.arrival){const id=this.arrival;this.arrival=null;this.onArrive(id);}
   };
 }

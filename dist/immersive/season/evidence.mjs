@@ -21,9 +21,9 @@ function photoTrial(wall,state,act){
   range.oninput=paint;range.onchange=()=>{if(!done&&+range.value>=78)act(wall?'expose':'oblique');};
   paint();tool.append(cover,range);group.append(node('p',label),tool);return group;
 }
-export function instrument(sc,id,state,dispatch){
+export function instrument(sc,id,state,dispatch,previousPulse){
   const act=choice=>dispatch({type:'interact',id,choice});
-  const physical=photoApparatus(sc.episode,id,state,act);if(physical)return physical;
+  const physical=photoApparatus(sc.episode,id,state,act,previousPulse);if(physical)return physical;
   if(sc.episode<=5)return (id==='old_wall'||id==='lamp')?photoTrial(id==='old_wall',state,act):null;
   if(sc.episode<=7)return makeArc67Visual(sc.id,id,state,dispatch);
   if(sc.episode<=10)return makeArc810Visual(sc.id,id,state,act);

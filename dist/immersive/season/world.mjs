@@ -23,8 +23,8 @@ function shadowTexture(){
   const grad=ctx.createRadialGradient(48,48,4,48,48,48);grad.addColorStop(0,'white');grad.addColorStop(.48,'#aaa');grad.addColorStop(1,'black');
   ctx.fillStyle=grad;ctx.fillRect(0,0,96,96);return new T.CanvasTexture(c);
 }
-export function buildLayout(sc,ch){
-  const plan=floorPlan(sc);
+export function buildLayout(sc,ch,passageOpen=false){
+  const plan=floorPlan(sc,passageOpen);
   plan.Interior=class {
     constructor(canvas){
       this.renderer=new T.WebGLRenderer({canvas,antialias:true,powerPreference:'low-power'});
@@ -52,8 +52,31 @@ export function buildLayout(sc,ch){
         const mesh=new T.Mesh(flat,mat);mesh.scale.set(aspect*height,height,1);mesh.position.set(x,height/2,z);
         this.props.push(mesh);this.scene.add(mesh);return mesh;
       };
-      for(const [id,s] of Object.entries(plan.stations)){
+      for(const [id,s] of Object.entries(plan.furnishings)){
         const [x,,z]=s.point;
+        if(sc.episode===12&&id==='wall'){
+          // This section belongs to the west wall. Keep its bearing and stone scale
+          // fixed, with real depth behind the opening as the player steps inside.
+          const width=4.65,height=2.72,root=new T.Group();
+          root.rotation.y=Math.PI/2;root.position.set(x,0,z);this.scene.add(root);
+          const wall=texture(passageOpen?'open-passage':'evidence-12');
+          const panel=(u0,v0,u1,v1,depth,map=wall)=>{
+            const geom=new T.PlaneGeometry(width*(u1-u0),height*(v1-v0));
+            const uv=geom.getAttribute('uv');
+            for(let i=0;i<uv.count;i++)uv.setXY(i,u0+uv.getX(i)*(u1-u0),v0+uv.getY(i)*(v1-v0));
+            const mesh=new T.Mesh(geom,new T.MeshBasicMaterial({map,side:T.DoubleSide}));
+            mesh.position.set(((u0+u1)/2-.5)*width,(v0+v1)/2*height,depth);root.add(mesh);
+          };
+          if(passageOpen){
+            panel(0,0,.348,1,0);panel(.69,0,1,1,0);panel(.348,.88,.69,1,0);
+            panel(.348,0,.69,.88,-.64);
+            for(const side of [.348,.69]){
+              const lining=new T.Mesh(new T.BoxGeometry(.055,.88*height,.66),new T.MeshBasicMaterial({map:wall,color:0x696361}));
+              lining.position.set((side-.5)*width,.44*height,-.32);root.add(lining);
+            }
+          }else panel(0,0,1,1,0);
+          continue;
+        }
         const mobile=movable[sc.episode]?.includes(id);
         const art=mobile?'plinth':objectArt[id]||kindArt[s.type], [aspect,height]=sizes[art];
         shadow(x,z,aspect*height);picture('prop-'+art,x,z,height,aspect);

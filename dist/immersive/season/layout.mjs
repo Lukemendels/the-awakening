@@ -18,19 +18,20 @@ export function subject(id){
   if(/cargo|crate|stock|cache|supply/.test(id))return 'cargo';
   return 'record';
 }
-export function floorPlan(sc){
+export function floorPlan(sc,passageOpen=false){
   const stations={};
   for(const o of sc.objects){
     const type=subject(o.id);
     stations[o.id]={point:[o.x,1.19,o.y],label:o.label,mark:glyph[type],type};
   }
+  if(sc.episode===12)stations.wall.point=[1.02,1.19,2.05];
   const all=Object.values(stations);
   const people=(companions[sc.episode]||[]).flatMap(([name,id])=>{
     if(!stations[id])return [];
     const [x,,z]=stations[id].point;
     return [{name,x:x<4.5?x-.64:x+.64,z:z-.57}];
   });
-  const walkable=(x,z)=>x>=.66&&x<=8.34&&z>=.66&&z<=7.34&&people.every(p=>Math.hypot(x-p.x,z-p.z)>.24)&&all.every(s=>Math.abs(x-s.point[0])>.45||Math.abs(z-s.point[2])>.42);
+  const walkable=(x,z)=>x>=.66&&x<=8.34&&z>=.66&&z<=7.34&&(sc.episode!==12||x>1.22||z>4.35||passageOpen&&Math.abs(z-stations.wall.point[2])<.45)&&people.every(p=>Math.hypot(x-p.x,z-p.z)>.24)&&all.every(s=>passageOpen&&s===stations.wall||Math.abs(x-s.point[0])>.45||Math.abs(z-s.point[2])>.42);
   for(const s of all){
     const [x,,z]=s.point;
     const options=[[x,z+1],[x-1,z],[x+1,z],[x,z-1],[x+.8,z+.8],[x-.8,z-.8]];
@@ -39,6 +40,7 @@ export function floorPlan(sc){
   const authored=Array.isArray(sc.start)?sc.start:[sc.start?.x,sc.start?.y];
   const start=[authored,[4.5,5.7],[4.5,4],[3.5,5.5],...all.map(s=>s.approach)].find(p=>p&&p.every(Number.isFinite)&&walkable(...p));
   const nearest=all.reduce((a,b)=>Math.hypot(a.point[0]-start[0],a.point[2]-start[1])<Math.hypot(b.point[0]-start[0],b.point[2]-start[1])?a:b);
-  return {stations,people,walkable,start,yaw:Number.isFinite(sc.start?.angle)?sc.start.angle:Math.atan2(nearest.point[2]-start[1],nearest.point[0]-start[0]),height:()=>0,
+  const targets=passageOpen?{passage:{label:'Open passage',mark:'⌑',type:'gate',point:[stations.wall.point[0],1.2,stations.wall.point[2]],approach:[stations.wall.point[0]-.1,stations.wall.point[2]],walkThrough:true}}:stations;
+  return {stations:targets,furnishings:stations,people,walkable,start,yaw:Number.isFinite(sc.start?.angle)?sc.start.angle:Math.atan2(nearest.point[2]-start[1],nearest.point[0]-start[0]),height:()=>0,
     footstep:()=>[4,6,7,8,9,10,11,12].includes(sc.episode)?'floor-step':'stone-step'};
 }

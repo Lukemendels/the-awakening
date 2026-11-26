@@ -252,7 +252,7 @@ export class ImmersiveAudio {
     // Limit simultaneous voices; stop the oldest before making another.
     if (this.voices.size>=12) this.voices.values().next().value.stop();
     const osc=ctx.createOscillator(), gain=ctx.createGain(), pan=ctx.createStereoPanner();
-    const settings={inspect:[440,.32,.10],success:[660,.65,.12],step:[92,.09,.035],'floor-step':[185,.145,.29],'rug-step':[150,.105,.15],'stone-step':[214,.12,.23],lap:[390,.76,.055],warning:[180,.50,.09],bell:[294,1.7,.045],paper:[160,.12,.025],wood:[118,.16,.035],knock:[112,.83,.18],'brass-slide':[123,.22,.055],'stone-seat':[910,.15,.065],'crystal-pulse':[147,1.45,.18],glass:[520,.38,.04],warning_low:[136,.65,.025],warning_mid:[157,.75,.035],warning_high:[178,.85,.045],water:[310,.7,.018],reveal:[220,2.2,.035],test:[440,.7,.50]};
+    const settings={'stone-scrape':[84,1.25,.10],'ring-source':[196,.58,.11],'ring-inner':[247,.58,.10],'ring-outer':[294,.64,.10],'distant-answer':[392,1.1,.07],inspect:[440,.32,.10],success:[660,.65,.12],step:[92,.09,.035],'floor-step':[185,.145,.29],'rug-step':[150,.105,.15],'stone-step':[214,.12,.23],lap:[390,.76,.055],warning:[180,.50,.09],bell:[294,1.7,.045],paper:[160,.12,.025],wood:[118,.16,.035],knock:[112,.83,.18],'brass-slide':[123,.22,.055],'stone-seat':[910,.15,.065],'crystal-pulse':[147,1.45,.18],glass:[520,.38,.04],warning_low:[136,.65,.025],warning_mid:[157,.75,.035],warning_high:[178,.85,.045],water:[310,.7,.018],reveal:[220,2.2,.035],test:[440,.7,.50]};
     const [freq,duration,level]=settings[kind]||settings.inspect;
     osc.type=(foot||kind.startsWith('warning')||kind==='wood'||kind==='knock')?'triangle':'sine';
     osc.frequency.setValueAtTime(foot?freq*(.9+Math.random()*.2):freq,now);
@@ -277,18 +277,22 @@ export class ImmersiveAudio {
     // rather than the same pure oscillator used for all interactions.
     const oscillators=[osc],nodes=[osc,gain,pan];
     // Filtered noise gives physical gestures texture; generated in memory, no samples.
-    if (foot||['lap','water','paper','wood','brass-slide'].includes(kind)) {
+    if (foot||['lap','water','paper','wood','brass-slide','stone-scrape'].includes(kind)) {
       const source=ctx.createBufferSource(), filter=ctx.createBiquadFilter(), texture=ctx.createGain();
       const length=Math.max(1,Math.floor(ctx.sampleRate*duration));
       const buffer=ctx.createBuffer(1,length,ctx.sampleRate), data=buffer.getChannelData(0);
       let smooth=0;for(let i=0;i<length;i++){smooth=.72*smooth+.28*(Math.random()*2-1);data[i]=smooth;}
-      const cutoff={'stone-step':1580,'rug-step':620,'floor-step':1100,water:1100,paper:1900,'brass-slide':1200};
+      const cutoff={'stone-scrape':950,'stone-step':1580,'rug-step':620,'floor-step':1100,water:1100,paper:1900,'brass-slide':1200};
       source.buffer=buffer;filter.type='bandpass';filter.Q.value=.7;
       filter.frequency.value=kind==='lap'?560+Math.random()*240:(cutoff[kind]??380);
-      const strength=foot?1.6:kind==='lap'?3:.7;
+      const strength=kind==='stone-scrape'?2.8:foot?1.6:kind==='lap'?3:.7;
       const peak=level*strength*position.attenuation;
       texture.gain.setValueAtTime(.0001,now);
-      if(kind==='lap'){
+      if(kind==='stone-scrape'){
+        texture.gain.linearRampToValueAtTime(peak,now+.22);
+        texture.gain.setTargetAtTime(peak*.63,now+.68,.16);
+        filter.frequency.setTargetAtTime(490,now+.4,.25);
+      }else if(kind==='lap'){
         texture.gain.linearRampToValueAtTime(peak,now+.17);
         texture.gain.linearRampToValueAtTime(peak*.55,now+.36);
         filter.frequency.setTargetAtTime(410,now+.17,.20);

@@ -33,6 +33,7 @@ test('every chapter has reachable stations, media, a valid finding checkpoint an
     for(const pair of route[ep-4].split(' ')){
       const [id,choice]=pair.split(':');
       if(ep===6&&id==='channel')save.arc.mount='coupled';
+      if(ep===18&&choice==='altered')save[block.key]=block.act(save[block.key],{type:'register',offset:0}).progress;
       const result=block.act(save[block.key],{type:'interact',id,choice});save[block.key]=result.arc??result.progress;
     }
     assert.ok(block.solved(save[block.key]),'ep '+ep);

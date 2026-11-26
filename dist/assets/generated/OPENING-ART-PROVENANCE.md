@@ -27,3 +27,5 @@ Episode 3 uses `night-quay-panorama.webp` and `barge-overlook.webp`, generated w
 Episodes 4–24 use eleven spherical environment paintings and twenty-one photographic finding plates in `season/`, generated with OpenAI image generation. The archive key, workshop covering, and water basin have additional close-ups. Each finding plate was cropped from an episode-specific panel in a four-shot sheet. The game renders the foreground apparatus, placements and optical overlays at runtime.
 
 The standing cast and furnishings use original, transparent photographic cutouts generated for this build. Mira, Kai, Thalor, and the Order leader use the existing character portraits as visual references. The walkable floor textures are projections of each environment, and the portable specimen and its plinth have separate visibility layers.
+
+The opening passage, the shopkeeper reaching safety, the answering shore and Kaelan holding his original specimen at sunrise were generated as four original cinematic plates for the season conclusions. The aligned carving and channel pulse are drawn in the game. The wall parts in front of the photographed passage.

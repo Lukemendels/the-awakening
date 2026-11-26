@@ -34,3 +34,14 @@ test('every station and the floor behind the bench have collision-free routes',(
   }
   assert.equal(pathTo(points[0],[6.5,3.1]),null);
 });
+
+test('dragging the lamp by its visible travel reproduces the sketched shadow',async()=>{
+  const {lampPosition,dragLamp,propAt}=await import('../dist/immersive/shop/optics.mjs');
+  const s=fresh(),foot=lampPosition(s.lamp),target=lampPosition(sunsetAngle);
+  assert.equal(propAt(foot.x,foot.y-65,s),'lamp');
+  assert.equal(propAt(450,215,s),'turn');
+  assert.equal(propAt(870,20,s),null);
+  assert.equal(dragLamp(s.lamp,target.y-foot.y),sunsetAngle);
+  assert.equal(dragLamp(0,999),45);
+  assert.equal(dragLamp(0,-999),-45);
+});

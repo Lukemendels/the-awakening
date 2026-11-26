@@ -1,86 +1,132 @@
 import {projection,sunsetAngle,crystalAngle} from './investigation.mjs';
 
-function line(c,points,color,width=1){
-  c.beginPath();points.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.strokeStyle=color;c.lineWidth=width;c.stroke();
+const width=900,height=450,stand={x:450,y:270},inlay={x:747,y:211};
+const assets={};
+let loading;
+export function loadBenchArt(){
+  if(!loading){
+    const sources={plate:'light-bench-plate',lamp:'bench-lamp',rest:'bench-rest',condemned:'bench-quartz',approved:'bench-clear'};
+    loading=Promise.all(Object.entries(sources).map(([key,name])=>new Promise(resolve=>{
+      const image=new Image();
+      image.onload=()=>{assets[key]=image;resolve();};
+      image.onerror=resolve;
+      image.src=new URL('../../assets/generated/'+name+'.webp',import.meta.url).href;
+    })));
+  }
+  return loading;
+}
+export function lampPosition(angle){
+  // The foot follows a shallow arc around the rest, on Kaelan's left.
+  const theta=angle*Math.PI/180;
+  return {x:stand.x-297*Math.cos(theta),y:stand.y+157*Math.sin(theta)};
+}
+export function propAt(x,y,s){
+  const lamp=lampPosition(s.lamp);
+  if(Math.abs(x-lamp.x)<72 && y>lamp.y-192 && y<lamp.y+23)return 'lamp';
+  if(((x-stand.x)/110)**2+((y-stand.y+55)/82)**2<1)return 'turn';
+  return null;
+}
+export function dragLamp(original,deltaY){
+  const y=Math.sin(original*Math.PI/180)+deltaY/157;
+  return Math.round(Math.max(-45,Math.min(45,Math.asin(Math.max(-1,Math.min(1,y)))*180/Math.PI)));
+}
+function stroke(c,points,color,w){
+  c.beginPath();points.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.strokeStyle=color;c.lineWidth=w;c.stroke();
+}
+function ellipse(c,x,y,rx,ry,color){
+  c.fillStyle=color;c.beginPath();c.ellipse(x,y,rx,ry,0,0,Math.PI*2);c.fill();
 }
 function glow(c,x,y,r,color){
-  const g=c.createRadialGradient(x,y,1,x,y,r);g.addColorStop(0,color);g.addColorStop(1,color+'00');
-  c.fillStyle=g;c.fillRect(x-r,y-r,2*r,2*r);
+  const grad=c.createRadialGradient(x,y,0,x,y,r);grad.addColorStop(0,color);grad.addColorStop(1,color.slice(0,7)+'00');
+  c.fillStyle=grad;c.fillRect(x-r,y-r,r*2,r*2);
 }
-export function illustration(state,kind='bench',beat=0,canvas=document.createElement('canvas')){
-  canvas.className='stage';
-  if(canvas.width!==1100){canvas.width=1100;canvas.height=440;}
-  canvas.setAttribute('role','img');
-  const c=canvas.getContext('2d');c.setTransform(2,0,0,2,0,0);c.lineJoin='round';c.lineCap='round';
-  const paper=c.createLinearGradient(0,0,550,220);
-  paper.addColorStop(0,'#947a54');paper.addColorStop(.42,'#ddcda8');paper.addColorStop(1,'#b29c74');
-  c.fillStyle=state.sketch||kind==='sketch'?paper:'#584634';c.fillRect(0,0,550,220);
-  const label=(s,x,y,size=12,col='#423e30')=>{c.fillStyle=col;c.font='italic '+size+'px Georgia';c.fillText(s,x,y);};
-  const cx=230,cy=100,mx=430,my=86;
-  const lampPoint=a=>[46,92+a*1.65];
-  function marker(){
-    c.save();c.translate(mx,my);c.rotate(Math.PI/4);c.fillStyle='#977132';c.fillRect(-7,-7,14,14);
-    c.strokeStyle='#f8dfa3';c.strokeRect(-5,-5,10,10);c.restore();
+function shadowEnd(angle){
+  const p=lampPosition(angle);
+  return {x:stand.x+(stand.x-p.x)*.65,y:stand.y+(stand.y-p.y)*.78};
+}
+function shadow(c,angle,sketch){
+  const tip=shadowEnd(angle),dx=tip.x-stand.x,dy=tip.y-stand.y;
+  c.save();
+  if(sketch){
+    c.setLineDash([6,4]);
+    stroke(c,[[stand.x,stand.y+4],[tip.x,tip.y+4],[tip.x,tip.y-4],[stand.x,stand.y-16]],'#595343',2);
+    c.setLineDash([]);
+    for(let i=.24;i<1;i+=.07)stroke(c,[[stand.x+dx*i,stand.y+dy*i-5],[stand.x+dx*i-5,stand.y+dy*i+3]],'#6b614f',1);
+    c.font='italic 18px Georgia';c.fillStyle='#62503c';c.fillText('Shadow at sunset',tip.x-62,tip.y-17);
+  }else{
+    c.filter='blur(1.5px)';
+    c.beginPath();c.moveTo(stand.x-16,stand.y-17);c.lineTo(tip.x+3,tip.y-6);c.lineTo(tip.x,tip.y+5);c.lineTo(stand.x-14,stand.y+9);
+    c.closePath();c.fillStyle='#46342077';c.fill();
   }
-  if(state.sketch||kind==='sketch'){
-    c.strokeStyle='#796f5555';c.strokeRect(15,13,520,193);c.strokeRect(18,16,514,187);
-    const sun=lampPoint(sunsetAngle);
-    c.setLineDash([7,6]);line(c,[sun,[cx,cy],[mx,my]],'#6a604a',1.4);c.setLineDash([]);
-    line(c,[[cx-23,cy+17],[cx-16,cy+29],[cx+17,cy+29],[cx+24,cy+17]],'#5b5948',2);
-    marker();label('Brass inlay',mx-15,my-24,16);label('Last sunlight',30,189,16);
-    label('Equinox • temple steps',340,192,17);
+  c.restore();
+}
+function brassMarker(c){
+  c.save();c.translate(inlay.x,inlay.y);c.rotate(-.09);
+  c.strokeStyle='#655844';c.lineWidth=1.5;c.beginPath();c.ellipse(0,0,25,16,-.12,.05,6.17);c.stroke();
+  const brass=c.createLinearGradient(-6,-7,6,7);brass.addColorStop(0,'#ffe9aa');brass.addColorStop(.5,'#ac874a');brass.addColorStop(1,'#77572d');
+  c.fillStyle=brass;c.beginPath();c.moveTo(-11,0);c.lineTo(0,-6);c.lineTo(11,0);c.lineTo(0,6);c.closePath();c.fill();c.restore();
+}
+function annotate(c){
+  shadow(c,sunsetAngle,true);brassMarker(c);
+  c.fillStyle='#5b503e';c.font='italic 18px Georgia';c.fillText('Brass inlay',inlay.x-40,inlay.y+43);
+}
+function drawProp(c,image,x,y,w,h,radians=0){
+  c.save();c.translate(x,y);c.rotate(radians);
+  c.drawImage(image,-w/2,-h,w,h);c.restore();
+}
+export function illustration(s,kind='bench',beat=0,canvas=document.createElement('canvas')){
+  canvas.className='stage';if(canvas.width!==1350){canvas.width=1350;canvas.height=675;}
+  const c=canvas.getContext('2d');c.setTransform(1.5,0,0,1.5,0,0);c.lineCap='round';c.lineJoin='round';
+  const sketch=kind==='sketch';
+  if(!sketch&&assets.plate){
+    const photo=assets.plate,sh=photo.width*height/width;
+    c.drawImage(photo,0,(photo.height-sh)*.4,photo.width,sh,0,0,width,height);
+  }else{
+    const paper=c.createLinearGradient(0,0,width,height);paper.addColorStop(0,'#ad946c');paper.addColorStop(.5,'#e6d5b0');paper.addColorStop(1,'#b89a6c');c.fillStyle=paper;c.fillRect(0,0,width,height);
   }
-  if(kind==='sketch'){
-    const t=Math.min(1,beat);
-    line(c,[lampPoint(sunsetAngle),[cx,cy],[mx,my+40*(1-t)]],'#fff4c4',3);
-    glow(c,mx,my+40*(1-t),14,'#fff7c8');label('Crystal stand',cx-30,152,15);
-    canvas.setAttribute('aria-label','Kaelan’s field sketch. Low evening sun strikes the stand from the lower left. Turning the crystal brings the spot onto the brass floor inlay.');
-    return canvas;
+  if(sketch){
+    c.strokeStyle='#877256';c.strokeRect(25,24,850,402);
+    const l=lampPosition(sunsetAngle);
+    stroke(c,[[l.x,l.y],[stand.x,stand.y-45],[inlay.x,inlay.y+(1-beat)*75]],'#f8edbf',4);
+    stroke(c,[[stand.x-22,stand.y],[stand.x-10,stand.y-46],[stand.x+8,stand.y-46],[stand.x+20,stand.y]],'#574e3e',3);
+    annotate(c);c.fillStyle='#564b39';c.font='italic 23px Georgia';c.fillText('Temple steps · Spring equinox',65,80);c.font='italic 18px Georgia';c.fillText('Last sunlight',l.x-25,l.y+35);
+    canvas.setAttribute('role','img');canvas.setAttribute('aria-label','Field sketch. The stand casts a long shadow to the right, a little uphill. A circle marks where the streaks meet.');return canvas;
   }
-  const lamp=lampPoint(state.lamp);
-  glow(c,...lamp,31,'#ffe8a2');line(c,[lamp,[cx,cy]],'#fff0bead',4);
-  c.fillStyle='#795c36';c.fillRect(lamp[0]-14,lamp[1]+5,28,6);glow(c,...lamp,10,'#fffbea');
-  const optics=projection(state);let desc='The specimen rest is empty.';
-  if(state.tray){
-    c.save();c.translate(cx,cy);c.rotate(state.turn*Math.PI/370);
-    const outline=[[-52,-8],[-35,-45],[-7,-56],[37,-33],[54,0],[26,46],[-11,53],[-42,28]];
-    c.beginPath();outline.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.closePath();
-    const stone=c.createLinearGradient(-40,-35,46,52);stone.addColorStop(0,'#29484b');stone.addColorStop(.35,'#a0cfce');stone.addColorStop(.58,'#638e91');stone.addColorStop(1,'#254c55');
-    c.fillStyle=stone;c.fill();c.strokeStyle='#e4f6e9';c.lineWidth=2;c.stroke();c.clip();
-    for(const [x,y] of outline)line(c,[[x,y],[x*.63-5,y*.64+1],[5,-13]],'#e0ffff45');
-    if(!optics.diffuse){
-      const cloud=c.createRadialGradient(-3,0,1,-3,0,38);cloud.addColorStop(0,'#f4f1e8ac');cloud.addColorStop(1,'transparent');
-      c.save();c.rotate(-.62);c.scale(1,.32+Math.abs(state.turn-crystalAngle)/180);c.fillStyle=cloud;c.fillRect(-45,-44,88,88);c.restore();
-      const shimmer=optics.visible?'#f0ffeb':'#e4e4dcc0';
-      line(c,[[-31,20],[-17,12],[-13,6],[0,3],[11,-7],[21,-11]],shimmer,1.6);
-      line(c,[[-27,23],[-14,15],[-9,9],[3,7],[12,-4]],shimmer,1.1);
-      line(c,[[7,5],[17,0],[19,-7],[33,-17]],shimmer,1.5);
-      line(c,[[-11,8],[-5,14],[11,15]],'#f5efdb9c',.9);
-      for(let i=0;i<8;i++){
-        const x=-22+i*4.1,y=15-i*2.3;
-        line(c,[[x-3,y+1],[x+2,y-2],[x+6+(i%3),y-9-(i%4)]],'#e6f5e3a8',.65);
+  if(s.sketch)annotate(c);
+  const lamp=lampPosition(s.lamp),o=projection(s);
+  glow(c,lamp.x+12,lamp.y-85,160,'#ffb94f39');
+  shadow(c,s.lamp,false);
+  ellipse(c,stand.x+4,stand.y+5,63,13,'#47311f52');
+  const brass=c.createLinearGradient(stand.x-50,0,stand.x+50,0);brass.addColorStop(0,'#46341f');brass.addColorStop(.23,'#b68a45');brass.addColorStop(.43,'#e4c482');brass.addColorStop(.74,'#77542f');brass.addColorStop(1,'#38291b');
+  if(assets.rest)drawProp(c,assets.rest,stand.x,stand.y+3,153,82);
+  else ellipse(c,stand.x,stand.y,55,12,brass);
+  if(s.tray){
+    const y=inlay.y+o.offset*1.8;
+    c.save();c.globalCompositeOperation='screen';
+    if(o.diffuse){
+      c.translate(inlay.x,y);c.scale(2.4,.45);glow(c,0,0,28,'#fff0acbf');
+    }else if(o.visible){
+      for(const sign of [-1,1]){
+        const end=y+sign*o.split*1.55;
+        const l=c.createLinearGradient(stand.x+30,0,inlay.x,0);l.addColorStop(0,'#ffeba622');l.addColorStop(.58,'#f9df9d99');l.addColorStop(1,'#fffae1ec');
+        c.shadowColor='#ffe7aa';c.shadowBlur=6;
+        stroke(c,[[stand.x+30,stand.y-48+sign*3],[inlay.x,end]],l,2);glow(c,inlay.x,end,13,'#fff5c2d0');
       }
-      if(beat>0)glow(c,-29+Math.min(1,beat)*59,17-Math.min(1,beat)*31,16,'#edffe1');
     }
     c.restore();
-    if(optics.diffuse){
-      c.save();c.translate(mx,my+optics.offset*.4);c.scale(2.5,.47);glow(c,0,0,22,'#fff9ce');c.restore();desc='The approved stone throws a broad patch of light.';
-    }else if(optics.visible){
-      const y=my+optics.offset;
-      for(const sign of [-1,1]){
-        const end=y+sign*optics.split;
-        line(c,[[cx+42,cy+sign*5],[mx,end]],'#fff7d76b',5);
-        line(c,[[cx+42,cy+sign*5],[mx,end]],'#ffffe8',1.6);
-        glow(c,mx,end,9,'#fffbd9');
+    const photo=assets[s.specimen],rotation=(s.turn-crystalAngle)*.008;
+    if(photo){
+      c.save();c.translate(stand.x,stand.y-66);c.rotate(rotation);c.drawImage(photo,-77,-53,154,106);c.restore();
+      if(assets.rest){
+        c.save();c.beginPath();c.rect(stand.x-78,stand.y-44,156,50);c.clip();drawProp(c,assets.rest,stand.x,stand.y+3,153,82);c.restore();
       }
-      for(let i=0;i<8;i++){
-        const x=-22+i*4.1,y=15-i*2.3;
-        line(c,[[x-3,y+1],[x+2,y-2],[x+6+(i%3),y-9-(i%4)]],'#e6f5e3a8',.65);
-      }
-      if(beat>0)glow(c,mx,my,15+beat*16,'#feffcd');
-      desc=optics.aligned?'The two streaks converge on the brass inlay.':'Two narrow streaks travel across the paper.';
-    }else desc='A milky feather glints under the surface.';
-
+    }
+    else ellipse(c,stand.x,stand.y-49,53,38,'#b4bdad');
+    if(beat>0){glow(c,stand.x-29+beat*63,stand.y-42-beat*30,14,'#ffffddb8');glow(c,inlay.x,inlay.y,12+beat*18,'#fff9d6');}
   }
-  canvas.setAttribute('aria-label',desc);return canvas;
+  ellipse(c,lamp.x+4,lamp.y+4,55,12,'#452c1f60');
+  if(assets.lamp)drawProp(c,assets.lamp,lamp.x,lamp.y,115,176);
+  else{ellipse(c,lamp.x,lamp.y-8,35,14,brass);glow(c,lamp.x,lamp.y-58,25,'#ffc778');}
+  canvas.setAttribute('role','img');canvas.setAttribute('aria-label',o.diffuse?'The clear specimen spills a broad patch of light.':'A brass lamp stands to the left of the quartz. Its real shadow turns across the pencilled outline as the lamp moves.');
+  return canvas;
 }

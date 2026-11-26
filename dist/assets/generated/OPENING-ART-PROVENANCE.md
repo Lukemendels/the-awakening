@@ -13,3 +13,5 @@ Generated imagery is illustrative, not a precise representation of the game's br
 The first-person inspector scene uses `inspector-at-the-door.webp`, generated with OpenAI image generation using the existing crystal shop opening illustration as a reference and converted to WebP. It depicts the inspector delivering the grading notice to Kaelan’s father.
 
 The companion shots `condemned-tag.webp` and `disposal-barge.webp` were generated with the same tool, using the existing shop and night canal illustrations as references, respectively. The close-up shows Kaelan turning the shipment tag. The canal shot shows the rejected cargo passing the dock.
+
+The interactive light bench uses a photographic background plate and separate transparent lamp, brass cradle and quartz layers generated with OpenAI image generation. The shop opening and condemned tag stills supplied the visual references. The approved specimen used the feathered specimen as its reference. The game draws the moving shadow and streaks at runtime. The light bench study is a frame captured from the playable scene.

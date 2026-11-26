@@ -20,8 +20,9 @@ function reachable(a,b) {
 export function pathTo(from,to) {
   if(!walkable(...to)) return null;
   if(reachable(from,to)) return [to];
-  const start=from.map(v=>Math.round(v/step)*step);
-  if(!reachable(from,start)) return null;
+  const snapped=from.map(v=>Math.round(v/step)*step);
+  const start=[[0,0],[step,0],[-step,0],[0,step],[0,-step]].map(([x,z])=>[snapped[0]+x,snapped[1]+z]).find(p=>reachable(from,p));
+  if(!start)return null;
   const queue=[start], parent=new Map([[String(start),null]]);
   for(let i=0;i<queue.length;i++){
     const p=queue[i];

@@ -38,3 +38,38 @@ dialog{width:min(680px,96vw);max-height:94svh;padding:0;color:var(--ink);border:
 @media(prefers-reduced-motion:reduce){#shot-art,#shot-art::after{animation:none!important}}
 
 #sequence[data-shot="1"] #shot-art{background-position:center 40%}
+
+.shop-pad{position:absolute;bottom:max(18px,env(safe-area-inset-bottom));width:clamp(72px,12vmin,95px);aspect-ratio:1;border-radius:50%;background:#0c24274d;border:1px solid #e3e9d575;display:grid;place-items:center;touch-action:none;user-select:none;-webkit-user-select:none}
+.shop-pad i{width:37%;aspect-ratio:1;border:1px solid #e6dfbcaa;border-radius:50%;background:#e0dec144;pointer-events:none}
+.shop-pad.held{border-color:#efd8a5}.shop-pad span{position:absolute;top:100%;color:#fff5db;text-shadow:0 1px 3px black;line-height:1.1;font-size:10px}
+#move-pad{left:max(14px,env(safe-area-inset-left))}#look-pad{right:max(14px,env(safe-area-inset-right))}
+#room footer{left:105px;right:105px;display:grid;justify-content:center;justify-items:center;gap:2px;text-align:center;padding-inline:0}
+#destinations{justify-content:center}
+@media(max-width:550px){#room footer{left:91px;right:91px}#room footer nav{gap:2px}#destinations button{font-size:12px;padding:4px}#guide{font-size:11px}}
+
+/* At the bench the photograph takes the full working area. Secondary controls
+   open on request, leaving the lamp, shadow and inlay within thumb reach. */
+dialog:has(.workbench){width:min(1060px,100vw);max-width:100vw;max-height:100svh;border-radius:9px;background:#152124}
+dialog:has(.workbench) .paper{padding:10px clamp(12px,2.4vw,28px)}
+dialog:has(.workbench) .kicker{display:none}
+dialog:has(.workbench) h2{font-size:clamp(24px,4vmin,39px);line-height:44px;margin:0}
+.workbench{display:block}.workbench .stage{display:block;width:100%;height:auto;aspect-ratio:2/1;margin:0;border:0;border-radius:3px;touch-action:none;user-select:none}
+.workbench>div:first-child>div:first-child{width:min(100%,calc((100svh - 146px) * 2));margin:auto}
+.workbench .feedback{color:#ebd9b2;font-size:.89rem;min-height:0}
+#content.workbench p{margin:4px 0}.bench-tools{position:relative;display:flex;align-items:center;gap:6px;flex-wrap:wrap}.bench-tools .controls{margin:0}.bench-tools details{margin-left:auto}
+.bench-tools summary{padding:10px 8px;cursor:pointer;min-height:44px}.bench-tools summary:focus-visible{outline:2px solid var(--gold)}
+.adjustments{position:absolute;z-index:2;bottom:100%;right:0;background:#11262bf5;border:1px solid var(--line);border-radius:6px;padding:8px;width:min(370px,96%);box-shadow:0 3px 15px #0006}
+.adjust-row{display:flex;align-items:center;gap:8px}.adjust-row+ .adjust-row{margin-top:6px}.adjust-row label{flex:1;display:flex;align-items:center;gap:8px;font-size:.85rem}.adjust-row input{min-width:0;flex:1;width:60px;height:44px;accent-color:#dcbf83}
+@media(max-height:500px){dialog:has(.workbench){width:100vw}.workbench .bench-tools button{padding:5px 12px}.workbench>div:first-child>div:first-child{width:min(100%,calc((100svh - 133px) * 2))}}
+@media(max-width:450px){.bench-tools{gap:3px}.bench-tools button{padding:6px 9px}.bench-tools summary{font-size:.85rem}.workbench .specimens{gap:4px}}
+@media(orientation:landscape) and (max-height:640px){
+  dialog:has(.workbench){height:100svh;max-height:100svh;width:100vw;max-width:100vw;margin:0;border:0;border-radius:0;overflow:hidden;background:#302318}
+  dialog:has(.workbench) .paper{padding:0}
+  dialog:has(.workbench) h2,dialog:has(.workbench) #close{position:absolute;z-index:2;top:7px;filter:drop-shadow(0 1px 3px #23170a);color:white}
+  dialog:has(.workbench) h2{left:16px;font-size:24px;pointer-events:none;text-shadow:0 1px 3px #251b10}
+  dialog:has(.workbench) #close{right:10px;background:#182c29bf}
+  .workbench>div:first-child>div:first-child{position:absolute;width:min(100vw,calc(100svh * 2.28));top:44%;left:50%;transform:translate(-50%,-50%)}
+  .workbench .bench-tools{position:absolute;inset:auto 0 0;padding:3px max(12px,env(safe-area-inset-right)) max(4px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left));background:#122321ed;color:#f7ebcd}
+  #content.workbench .feedback,#content.workbench .hint{margin:0;position:absolute;bottom:53px;left:0;right:0;text-align:center;background:linear-gradient(transparent,#251a10bb);color:#fff2d9;padding:12px 10px 3px;text-shadow:0 1px 3px #261505;pointer-events:none}
+  #content.workbench .hint:not(:empty){background:#172922ee;bottom:80px;font-size:.9rem;border-radius:5px;left:10%;right:10%;padding:5px}
+}

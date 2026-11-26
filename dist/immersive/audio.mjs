@@ -48,6 +48,7 @@ export class ImmersiveAudio {
     this.master = null;
     this.limiter = null;
     this.ambient = [];
+    this.roomLevel=1;this.roomBus=null;
     this.voices = new Set();
     this.enabled = false;
     this.narrating = false;
@@ -101,11 +102,13 @@ export class ImmersiveAudio {
   }
   startAmbience() {
     const ctx=this.context,now=ctx.currentTime,config=SCENE_SOUND[this.scene],beds=[];
+    this.roomBus=ctx.createGain();this.roomBus.gain.value=this.roomLevel;
+    this.roomBus.connect(this.master);this.ambient.push(this.roomBus);
     // Soft, slowly beating foundations. Room profiles shift them rather than layering more drones.
     for(let i=0;i<3;i++){
       const osc=ctx.createOscillator(),gain=ctx.createGain();osc.type='sine';
       osc.frequency.value=config.bed[i];gain.gain.value=config.levels[i]*.30;
-      osc.connect(gain).connect(this.master);osc.start(now);beds.push({osc,gain});this.ambient.push(osc,gain);
+      osc.connect(gain).connect(this.roomBus);osc.start(now);beds.push({osc,gain});this.ambient.push(osc,gain);
     }
     const length=ctx.sampleRate*2,buffer=ctx.createBuffer(1,length,ctx.sampleRate),data=buffer.getChannelData(0);let previous=0;
     for(let i=0;i<length;i++){previous=.85*previous+.15*(Math.random()*2-1);data[i]=previous;}
@@ -116,25 +119,30 @@ export class ImmersiveAudio {
     for(let i=0;i<edge;i++){const f=i/edge;textureData[i]*=f;textureData[length-1-i]*=f;}
     const texture=ctx.createBufferSource(),textureFilter=ctx.createBiquadFilter(),textureGain=ctx.createGain();
     texture.buffer=textureBuffer;texture.loop=true;textureFilter.type='bandpass';textureFilter.frequency.value=Math.max(750,config.airCut);textureFilter.Q.value=.55;textureGain.gain.value=.35+config.air*5;
-    texture.connect(textureFilter).connect(textureGain).connect(this.master);texture.start(now);
+    texture.connect(textureFilter).connect(textureGain).connect(this.roomBus);texture.start(now);
     const textureSwell=ctx.createOscillator(),textureDepth=ctx.createGain();textureSwell.frequency.value=.065;textureDepth.gain.value=.07;textureSwell.connect(textureDepth).connect(textureGain.gain);textureSwell.start(now);
     // Water and air are independent filtered layers, never a recognizable prerecorded sample.
     const noise=ctx.createBufferSource(),waterFilter=ctx.createBiquadFilter(),waterGain=ctx.createGain(),waterPan=ctx.createStereoPanner();
     noise.buffer=buffer;noise.loop=true;waterFilter.type='lowpass';waterFilter.frequency.value=config.waterCut;waterGain.gain.value=config.water*4;
-    noise.connect(waterFilter).connect(waterGain).connect(waterPan).connect(this.master);
+    noise.connect(waterFilter).connect(waterGain).connect(waterPan).connect(this.roomBus);
     const airFilter=ctx.createBiquadFilter(),airGain=ctx.createGain();airFilter.type='bandpass';airFilter.frequency.value=config.airCut;airFilter.Q.value=.45;airGain.gain.value=config.air*4;
-    noise.connect(airFilter).connect(airGain).connect(this.master);
+    noise.connect(airFilter).connect(airGain).connect(this.roomBus);
     const swell=ctx.createOscillator(),depth=ctx.createGain();swell.frequency.value=.09;depth.gain.value=.004;swell.connect(depth).connect(waterGain.gain);
     // A separate filtered, slowly breathing hull/timber layer can follow a source.
     const woodFilter=ctx.createBiquadFilter(),woodGain=ctx.createGain(),woodPan=ctx.createStereoPanner();woodFilter.type='bandpass';woodFilter.frequency.value=config.woodCut??180;woodFilter.Q.value=.7;woodGain.gain.value=(config.wood??0)*4;
-    noise.connect(woodFilter).connect(woodGain).connect(woodPan).connect(this.master);
+    noise.connect(woodFilter).connect(woodGain).connect(woodPan).connect(this.roomBus);
     // A very low crystalline overtone sits below the environmental layers.
-    const shimmer=ctx.createOscillator(),shimmerGain=ctx.createGain();shimmer.type='sine';shimmer.frequency.value=config.shimmer;shimmerGain.gain.value=.003;shimmer.connect(shimmerGain).connect(this.master);
+    const shimmer=ctx.createOscillator(),shimmerGain=ctx.createGain();shimmer.type='sine';shimmer.frequency.value=config.shimmer;shimmerGain.gain.value=.003;shimmer.connect(shimmerGain).connect(this.roomBus);
     // Positional array resonance: a separate source, not a hidden-answer cue.
-    const arrayOsc=ctx.createOscillator(),arrayGain=ctx.createGain(),arrayPan=ctx.createStereoPanner();arrayOsc.type='sine';arrayOsc.frequency.value=config.arrayHz??220;arrayGain.gain.value=(config.array??0)*.4;arrayOsc.connect(arrayGain).connect(arrayPan).connect(this.master);
+    const arrayOsc=ctx.createOscillator(),arrayGain=ctx.createGain(),arrayPan=ctx.createStereoPanner();arrayOsc.type='sine';arrayOsc.frequency.value=config.arrayHz??220;arrayGain.gain.value=(config.array??0)*.4;arrayOsc.connect(arrayGain).connect(arrayPan).connect(this.roomBus);
     noise.start(now);swell.start(now);shimmer.start(now);arrayOsc.start(now);this.waterPan=waterPan;this.waterGain=waterGain;
     this.sceneNodes={beds,waterFilter,airFilter,airGain,shimmer,woodFilter,woodGain,woodPan,arrayOsc,arrayGain,arrayPan,textureFilter,textureGain};
     this.ambient.push(texture,textureFilter,textureGain,textureSwell,textureDepth,noise,waterFilter,waterGain,waterPan,airFilter,airGain,swell,depth,shimmer,shimmerGain,woodFilter,woodGain,woodPan,arrayOsc,arrayGain,arrayPan);this.updateSpatial();
+  }
+  setRoomLevel(level){
+    this.roomLevel=Math.max(0,Math.min(1,level));
+    this.scheduleEvent();
+    if(this.roomBus&&this.enabled)this.roomBus.gain.setTargetAtTime(this.roomLevel,this.context.currentTime,.14);
   }
   /** Changes acoustic character without restarting sources or interrupting ducking. */
   setScene(id) {
@@ -184,10 +192,10 @@ export class ImmersiveAudio {
   // Sparse, scene-grounded gestures; never scheduled while hidden or muted.
   scheduleEvent() {
     clearTimeout(this.eventTimer);
-    if (!this.enabled || this.hidden) return;
+    if (!this.enabled || this.hidden || this.roomLevel<.2) return;
     this.eventTimer=setTimeout(()=>{
       this.eventTimer=null;
-      if (!this.enabled || this.hidden) return;
+      if (!this.enabled || this.hidden || this.roomLevel<.2) return;
       const water=['canal','barge','passage','chamber','ascent','memory','network','restoration'];
       const crystal=['artisan','warehouse','summit','revelation','initiation'];
       const kind=water.includes(this.scene)?'water':crystal.includes(this.scene)?'glass':this.scene==='tower'?'bell':this.scene==='archive'||this.scene==='records'?'paper':'wood';
@@ -232,17 +240,17 @@ export class ImmersiveAudio {
   cue(kind,x=this.listener.x,z=this.listener.z) {
     if (!this.enabled||this.hidden||!this.context||!this.master||kind==='step'||kind==='inspect') return;
     const ctx=this.context, now=ctx.currentTime, position=this.spatial(x,z);
-    if (now-(this.lastCue.get(kind) ?? -Infinity)<.4) return;
+    if (now-(this.lastCue.get(kind) ?? -Infinity)<(kind==='brass-slide'?.21:.4)) return;
     this.lastCue.set(kind,now);
     // Limit simultaneous voices; stop the oldest before making another.
     if (this.voices.size>=12) this.voices.values().next().value.stop();
     const osc=ctx.createOscillator(), gain=ctx.createGain(), pan=ctx.createStereoPanner();
-    const settings={inspect:[440,.32,.10],success:[660,.65,.12],step:[92,.09,.035],warning:[180,.50,.09],bell:[294,1.7,.045],paper:[160,.12,.025],wood:[118,.16,.035],knock:[112,.83,.18],glass:[520,.38,.04],warning_low:[136,.65,.025],warning_mid:[157,.75,.035],warning_high:[178,.85,.045],water:[310,.7,.018],reveal:[220,2.2,.035],test:[440,.7,.50]};
+    const settings={inspect:[440,.32,.10],success:[660,.65,.12],step:[92,.09,.035],warning:[180,.50,.09],bell:[294,1.7,.045],paper:[160,.12,.025],wood:[118,.16,.035],knock:[112,.83,.18],'brass-slide':[123,.22,.055],'stone-seat':[910,.15,.065],'crystal-pulse':[147,1.45,.18],glass:[520,.38,.04],warning_low:[136,.65,.025],warning_mid:[157,.75,.035],warning_high:[178,.85,.045],water:[310,.7,.018],reveal:[220,2.2,.035],test:[440,.7,.50]};
     const [freq,duration,level]=settings[kind]||settings.inspect;
     osc.type=(kind.startsWith('warning')||kind==='wood'||kind==='knock')?'triangle':'sine';
     osc.frequency.setValueAtTime(freq,now);
     if(kind==='success')osc.frequency.exponentialRampToValueAtTime(freq*1.5,now+.18);
-    if(kind==='step'||kind==='wood'||kind==='paper')osc.frequency.exponentialRampToValueAtTime(freq*.7,now+duration);
+    if(kind==='step'||kind==='wood'||kind==='paper'||kind==='brass-slide')osc.frequency.exponentialRampToValueAtTime(freq*.7,now+duration);
     if(kind==='bell')osc.frequency.exponentialRampToValueAtTime(freq*.995,now+duration);
     gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(level*position.attenuation,now+.015);
     if(kind==='test')gain.gain.exponentialRampToValueAtTime(level*position.attenuation*.65,now+.35);
@@ -260,16 +268,16 @@ export class ImmersiveAudio {
     // rather than the same pure oscillator used for all interactions.
     const oscillators=[osc],nodes=[osc,gain,pan];
     // Filtered noise gives physical gestures texture; generated in memory, no samples.
-    if (['water','paper','wood'].includes(kind)) {
+    if (['water','paper','wood','brass-slide'].includes(kind)) {
       const source=ctx.createBufferSource(), filter=ctx.createBiquadFilter(), texture=ctx.createGain();
       const length=Math.max(1,Math.floor(ctx.sampleRate*duration));
       const buffer=ctx.createBuffer(1,length,ctx.sampleRate), data=buffer.getChannelData(0);
       let smooth=0;for(let i=0;i<length;i++){smooth=.72*smooth+.28*(Math.random()*2-1);data[i]=smooth;}
-      source.buffer=buffer;filter.type='bandpass';filter.frequency.value=kind==='water'?1100:kind==='paper'?1900:380;filter.Q.value=.7;
+      source.buffer=buffer;filter.type='bandpass';filter.frequency.value=kind==='water'?1100:kind==='paper'?1900:kind==='brass-slide'?1200:380;filter.Q.value=.7;
       texture.gain.setValueAtTime(.0001,now);texture.gain.exponentialRampToValueAtTime(level*.7*position.attenuation,now+.025);texture.gain.exponentialRampToValueAtTime(.0001,now+duration);
       source.connect(filter).connect(texture).connect(pan);oscillators.push(source);nodes.push(source,filter,texture);
     }
-    if(kind==='bell'||kind==='glass'||kind==='reveal'||kind==='test')for(const [ratio,amount] of [[2.03,.22],[3.93,.08]]){
+    if(kind==='bell'||kind==='glass'||kind==='reveal'||kind==='test'||kind==='stone-seat'||kind==='crystal-pulse')for(const [ratio,amount] of [[2.03,.22],[3.93,.08]]){
       const partial=ctx.createOscillator(),pg=ctx.createGain();partial.type='sine';partial.frequency.value=freq*ratio;
       pg.gain.setValueAtTime(.0001,now);pg.gain.exponentialRampToValueAtTime(level*amount*position.attenuation,now+.018);
       pg.gain.exponentialRampToValueAtTime(.0001,now+duration*.65);partial.connect(pg).connect(pan);oscillators.push(partial);nodes.push(partial,pg);
@@ -285,7 +293,7 @@ export class ImmersiveAudio {
     for(const voice of this.voices) voice.stop();
     this.voices.clear();
     for(const node of this.ambient){try{node.stop?.();}catch(_){}try{node.disconnect();}catch(_){}}
-    this.lastCue.clear();this.ambient=[];this.waterPan=null;this.waterGain=null;this.sceneNodes=null;
+    this.lastCue.clear();this.ambient=[];this.roomBus=null;this.waterPan=null;this.waterGain=null;this.sceneNodes=null;
     if(this.master){try{this.master.disconnect();}catch(_){}this.master=null;}
     if(this.limiter){try{this.limiter.disconnect();}catch(_){}this.limiter=null;}
     // Keep the empty context alive for a subsequent user-gesture enable.

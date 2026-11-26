@@ -1,6 +1,8 @@
 import * as T from '../vendor/three.module.js';
 import {Room3D} from '../room3d.mjs';
-import {stations,pathTo} from './walk.mjs';
+import {clamp,wrapAngle} from '../engine.mjs';
+import {bindShopSticks} from './sticks.mjs';
+import {stations,pathTo,walkable} from './walk.mjs';
 
 function wallChart(){
   const paper=document.createElement('canvas');paper.width=480;paper.height=240;
@@ -20,7 +22,8 @@ function wallChart(){
 }
 
 export class ShopView {
-  constructor(canvas,markers,onArrive,onMessage){
+  constructor(canvas,markers,onArrive,onMessage,audio){
+    this.audio=audio;
     this.canvas=canvas;this.onArrive=onArrive;this.onMessage=onMessage;
     this.room=new Room3D(canvas,{benchOffset:1.5,canalImage:'../../assets/6_Night Canal.webp'});
     this.room.scene.fog=null;
@@ -47,16 +50,41 @@ export class ShopView {
       if(hitProp){this.go(hitProp.s.approach,hitProp.id);return;}
     };
   }
-  start(){
-    cancelAnimationFrame(this.frameId);this.path=[];this.arrival=null;this.pos=[4.5,5.75];this.look=new T.Vector3(4.5,1,1.7);
+  start(pose){
+    this.running=true;this.path=[];this.arrival=null;
+    this.pos=[4.5,5.75];this.yaw=-Math.PI/2;this.pitch=-.13;
+    if(pose && [pose.x,pose.z,pose.yaw,pose.pitch].every(Number.isFinite) && walkable(pose.x,pose.z)){
+      this.pos=[pose.x,pose.z];this.yaw=wrapAngle(pose.yaw);this.pitch=clamp(pose.pitch,-1,1);
+    }
+    this.input=bindShopSticks(document.getElementById('move-pad'),document.getElementById('look-pad'),
+      ()=>this.running&&!document.hidden&&!document.querySelector('dialog[open]'),()=>{
+        if(this.arrival)this.onMessage('');
+        this.path=[];this.arrival=null;
+      });
     this.resolution='';this.last=performance.now();this.frame(this.last);
   }
-  stop(){cancelAnimationFrame(this.frameId);this.path=[];this.arrival=null;}
-  go(to,id=null){
-    const path=pathTo(this.pos,to);
-    if(!path){this.onMessage('Choose a clear patch of floor.');return;}
-    this.path=path;this.arrival=id;
-    if(id)this.onMessage('Approaching '+stations[id].label.toLowerCase()+'…');
+  pose(){return {x:this.pos[0],z:this.pos[1],yaw:this.yaw,pitch:this.pitch};}
+  pause(){this.path=[];this.arrival=null;this.input?.reset();}
+  stop(){this.running=false;this.pause();cancelAnimationFrame(this.frameId);}
+  go(to,id){
+    const [x,,z]=stations[id].point;
+    const inReach=Math.hypot(this.pos[0]-x,this.pos[1]-z)<=1.3;
+    const path=inReach?[]:pathTo(this.pos,to);
+    if(!path){this.onMessage('Move clear of the furniture and try again.');return;}
+    this.input.reset();this.path=path;this.arrival=id;
+    this.onMessage('Approaching '+stations[id].label.toLowerCase()+'…');
+  }
+  walk(dt){
+    const {move,look,keys}=this.input;
+    this.yaw=wrapAngle(this.yaw+(look.x+Number(keys.has('arrowright'))-Number(keys.has('arrowleft')))*2.25*dt);
+    this.pitch=clamp(this.pitch+(-look.y+Number(keys.has('arrowup'))-Number(keys.has('arrowdown')))*1.5*dt,-1,1);
+    const forward=-move.y+Number(keys.has('w'))-Number(keys.has('s'));
+    const strafe=move.x+Number(keys.has('d'))-Number(keys.has('a'));
+    const speed=2.2*dt/Math.max(1,Math.hypot(forward,strafe));
+    const dx=speed*(forward*Math.cos(this.yaw)-strafe*Math.sin(this.yaw));
+    const dz=speed*(forward*Math.sin(this.yaw)+strafe*Math.cos(this.yaw));
+    if(walkable(this.pos[0]+dx,this.pos[1]))this.pos[0]+=dx;
+    if(walkable(this.pos[0],this.pos[1]+dz))this.pos[1]+=dz;
   }
   frame=(time)=>{
     this.frameId=requestAnimationFrame(this.frame);
@@ -69,19 +97,31 @@ export class ShopView {
       this.room.camera.aspect=aspect;this.room.camera.fov=72;
       this.room.camera.updateProjectionMatrix();
     }
-    const moving=this.path.length>0;
-    let remaining=this.reduce.matches?Infinity:dt*4.5;
+    const moving=Boolean(this.arrival);
+    if(!moving)this.walk(dt);
+    let remaining=this.reduce.matches?Infinity:dt*2.8;
     while(this.path.length && remaining>0){
       const [x,z]=this.path[0],dx=x-this.pos[0],dz=z-this.pos[1],d=Math.hypot(dx,dz);
       if(d<=remaining){this.pos=[x,z];remaining-=d;this.path.shift();}
       else{this.pos[0]+=dx*remaining/d;this.pos[1]+=dz*remaining/d;remaining=0;}
     }
     const [x,z]=this.pos;
+    let facing=false;
     if(this.arrival){
-      this.target.set(...stations[this.arrival].point);
-      this.look.lerp(this.target,this.reduce.matches?1:1-Math.exp(-8*dt));
+      const [tx,ty,tz]=stations[this.arrival].point;
+      const yaw=Math.atan2(tz-z,tx-x);
+      const pitch=Math.atan2(ty-1.58,Math.hypot(tx-x,tz-z));
+      const blend=this.reduce.matches?1:1-Math.exp(-7*dt);
+      this.yaw=wrapAngle(this.yaw+wrapAngle(yaw-this.yaw)*blend);
+      this.pitch+=(pitch-this.pitch)*blend;
+      facing=Math.abs(wrapAngle(yaw-this.yaw))<.06 && Math.abs(pitch-this.pitch)<.06;
     }
-    camera.position.set(x,1.58,z);camera.lookAt(this.look);
+    camera.position.set(x,1.58,z);
+    camera.lookAt(x+Math.cos(this.yaw),1.58+Math.tan(this.pitch),z+Math.sin(this.yaw));
+    if(x!==this.lastX||z!==this.lastZ||this.yaw!==this.lastYaw){
+      this.audio.setListener(x,z,this.yaw);
+      this.lastX=x;this.lastZ=z;this.lastYaw=this.yaw;
+    }
     camera.updateMatrixWorld();
     for(const [b,s] of this.pins){
       const p=this.projected.set(...s.point).project(camera);
@@ -90,6 +130,6 @@ export class ShopView {
       if(!b.hidden){b.style.left=px+'px';b.style.top=py+'px';}
     }
     this.room.renderer.render(this.room.scene,camera);
-    if(moving&&!this.path.length&&this.arrival){const id=this.arrival;this.arrival=null;this.onArrive(id);}
+    if(facing&&!this.path.length&&this.arrival){const id=this.arrival;this.arrival=null;this.onArrive(id);}
   };
 }

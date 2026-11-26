@@ -1,7 +1,7 @@
 import {ShopView} from './view.mjs';
 import {stations} from './walk.mjs';
-import {restore,expose,projection,sunsetAngle} from './investigation.mjs';
-import {illustration} from './optics.mjs';
+import {fresh,restore,expose,projection,sunsetAngle} from './investigation.mjs';
+import {illustration,loadBenchArt,propAt,dragLamp} from './optics.mjs';
 import {loadSave,writeSave} from '../save.mjs';
 import {CinematicClock} from '../cinematic.mjs';
 import {ImmersiveAudio} from '../audio.mjs';
@@ -19,9 +19,11 @@ if(!journey.shopOpening && !journey.flags.solved){
   }catch{}
 }
 const audio=new ImmersiveAudio();
+audio.setEmitter('water',7.85,3.4);
 let voice=Boolean(journey.narration),view,film,pulseFrame,memoryFrame,pausedByPlayer=false;
 function save(){
   const current=loadSave(storage);
+  if(view)state.pose=view.pose();
   current.shopOpening=state;
   if(!current.arc&&!current.nextArc&&!current.finalArc)current.scene='room';
   $('storage-error').hidden=writeSave(storage,current);
@@ -38,13 +40,14 @@ function paragraph(text,group=content,cls=''){
   const p=document.createElement('p');p.textContent=text;p.className=cls;group.append(p);return p;
 }
 function begin(){
+  loadBenchArt();
   for(const name of filmArt){const image=new Image();image.src='../../assets/generated/'+name+'.webp';}
   cancelAnimationFrame(memoryFrame);$('arrival').hidden=true;
   if(state.phase==='film'){playFilm(Math.max(2,state.shot));return;}
   if(state.phase==='dock'){dock();return;}
   $('room').hidden=false;$('guide').textContent=task();
-  try{view=new ShopView($('world'),$('markers'),inspect,text=>$('guide').textContent=text);view.start();}
-  catch{$('guide').textContent='Use the destination buttons to investigate the shop.';view=null;}
+  try{view=new ShopView($('world'),$('markers'),inspect,text=>$('guide').textContent=text||task(),audio);view.start(journey.shopOpening?.pose);}
+  catch{$('move-pad').hidden=$('look-pad').hidden=true;$('guide').textContent='Use the destination buttons to investigate the shop.';view=null;}
   save();if(state.active)inspect(state.active);
 }
 function close(){
@@ -52,13 +55,13 @@ function close(){
 }
 function inspect(id){
   if(state.phase!=='shop')return;
-  state.active=id;save();$('heading').textContent=({bench:'Light bench',notebook:'Temple notebook',shelf:'Specimen shelf',journal:'Evidence journal'})[id];
+  view?.pause();state.active=id;save();$('heading').textContent=({bench:'Light bench',notebook:'Temple notebook',shelf:'Specimen shelf',journal:'Evidence journal'})[id];
   $('panel-label').textContent=id==='journal'?'Kaelan’s notes':'Outer ring · Crystal shop';
   content.className='';content.replaceChildren();if(!dialog.open)dialog.showModal();dialog.scrollTop=0;
   if(id==='bench'){bench();return;}
   if(id==='notebook'){
     content.append(illustration(state,'sketch',1));
-    paragraph('The stand, the last ray of sunlight, the brass inlay. I marked where the light fell just before the surge.');
+    paragraph('I traced the stand’s long shadow before the surge. The little circle marks where its light fell.');
     button(state.sketch?'Return to shop':'Bring the sketch',()=>{state.sketch=true;close();});
   }else if(id==='shelf'){
     paragraph('A milky wisp hangs inside the rejected stone. A second specimen from the same shipment is clear. The merchant house graded it premium.');
@@ -72,31 +75,53 @@ function inspect(id){
 function bench(){
   if(!state.tray){paragraph('A sliding lamp and an empty brass rest. Both specimens are still on the shelf.');return;}
   const evidence=document.createElement('div'),tools=document.createElement('div');
-  content.className='workbench';content.append(evidence,tools);
+  content.className='workbench';tools.className='bench-tools';content.append(evidence,tools);
   const picture=document.createElement('div'),surface=document.createElement('canvas');
   picture.append(surface);evidence.append(picture);
   const feedback=paragraph('',evidence,'feedback');feedback.setAttribute('role','status');
-  const stones=document.createElement('div');stones.className='controls';tools.append(stones);
-  const buttons=['condemned','approved'].map(key=>button(key==='approved'?'Approved':'Condemned',()=>{state.specimen=key;refresh();},stones));
-  function slider(label,key,min,max){
-    const wrap=document.createElement('div'),name=document.createElement('label'),input=document.createElement('input');
-    wrap.className='control-group';name.textContent=label;input.type='range';input.min=min;input.max=max;input.value=state[key];
-    name.append(input);wrap.append(name);tools.append(wrap);
-    input.oninput=()=>{state[key]=Number(input.value);refresh();};return input;
-  }
-  slider('Slide lamp','lamp',-45,45);
-  const tilt=slider('Tilt stone','turn',-60,60);
-  let drag=null;
-  picture.onpointerdown=e=>{if(drag)return;drag={id:e.pointerId,x:e.clientX,start:state.turn};picture.setPointerCapture(e.pointerId);};
-  picture.onpointermove=e=>{
-    if(e.pointerId!==drag?.id)return;
-    state.turn=Math.max(-60,Math.min(60,Math.round(drag.start+(e.clientX-drag.x)*120/picture.clientWidth)));
-    tilt.value=state.turn;refresh();
-  };
-  picture.onlostpointercapture=()=>{drag=null;};
-  const hints=['Look at the direction of sunset in the sketch.','Slide the lamp until its ray follows the pencilled line toward the stand.','Use the condemned stone. When you see two streaks, tilt it until both land on the brass inlay.'];
+  const stones=document.createElement('div');stones.className='controls specimens';tools.append(stones);
+  const buttons=['condemned','approved'].map(key=>button(key==='approved'?'Approved':'Condemned',()=>{
+    state.specimen=key;audio.cue('stone-seat');refresh();
+  },stones));
+  const hints=['Look at the long shadow Kaelan drew on the page.','Drag the brass lamp until the real shadow covers the pencil hatching.','Hold the lamp there. Roll the condemned stone until both streaks land inside the circle.'];
   const hint=paragraph(state.hints?hints[state.hints-1]:'',evidence,'hint');hint.setAttribute('role','status');
   button('Hint',()=>{state.hints=Math.min(3,state.hints+1);hint.textContent=hints[state.hints-1];save();},tools);
+  const fine=document.createElement('details'),summary=document.createElement('summary');
+  summary.textContent='Fine controls';fine.append(summary);tools.append(fine);
+  const adjustments=document.createElement('div');adjustments.className='adjustments';fine.append(adjustments);
+  const inputs={};
+  function adjust(key,value){
+    const low=key==='lamp'?-45:-60;
+    const next=Math.round(Math.max(low,Math.min(-low,value)));
+    if(next===state[key])return;
+    state[key]=next;inputs[key].value=next;
+    if(!projection(state).aligned)audio.cue(key==='lamp'?'brass-slide':'stone-seat');
+    refresh();
+  }
+  for(const [key,label,limit] of [['lamp','Slide lamp',45],['turn','Tilt stone',60]]){
+    const row=document.createElement('div'),name=document.createElement('label'),input=document.createElement('input');
+    row.className='adjust-row';input.type='range';input.min=-limit;input.max=limit;input.value=state[key];inputs[key]=input;
+    name.textContent=label;name.append(input);
+    const minus=button('−',()=>adjust(key,state[key]-4),row);minus.setAttribute('aria-label',label+' backward');
+    row.append(name);const plus=button('+',()=>adjust(key,state[key]+4),row);plus.setAttribute('aria-label',label+' forward');
+    input.oninput=()=>adjust(key,Number(input.value));adjustments.append(row);
+  }
+  let drag=null;
+  surface.onpointerdown=e=>{
+    if(drag||state.phase!=='shop')return;
+    const r=surface.getBoundingClientRect();
+    const key=propAt((e.clientX-r.left)/r.width*900,(e.clientY-r.top)/r.height*450,state);
+    if(!key)return;
+    drag={id:e.pointerId,key,x:e.clientX,y:e.clientY,start:state[key],width:r.width,height:r.height};
+    surface.setPointerCapture(e.pointerId);e.preventDefault();
+  };
+  surface.onpointermove=e=>{
+    if(drag?.id!==e.pointerId)return;
+    const value=drag.key==='lamp'?dragLamp(drag.start,(e.clientY-drag.y)*450/drag.height):drag.start+(e.clientX-drag.x)*215/drag.width;
+    adjust(drag.key,value);
+  };
+  surface.onpointerup=surface.onpointercancel=surface.onlostpointercapture=()=>{drag=null;};
+  loadBenchArt().then(()=>{if(surface.isConnected&&state.phase==='shop')illustration(state,'bench',0,surface);});
   function refresh(){
     if(state.phase!=='shop')return;
     const solved=expose(state);save();
@@ -106,9 +131,9 @@ function bench(){
     const optics=projection(state);
     feedback.textContent=!state.sketch?'Get the notebook to place the temple sketch beneath the stone.':
       optics.diffuse?'The clear stone throws a broad patch of light.':
-      !optics.visible?'A cloudy feather catches the light. The paper stays dim.':
-      Math.abs(state.lamp-sunsetAngle)>5?'Two streaks fall wide of the inlay. Follow the sunset line with the lamp.':
-      'Two fine streaks cross the sketch. Tilt the stone and watch them travel.';
+      !optics.visible?'Drag the lamp to match the stand’s shadow to Kaelan’s sketch.':
+      Math.abs(state.lamp-sunsetAngle)>5?'The shadow still falls outside the pencil marks.':
+      'The shadows line up. Roll the stone and watch the light.';
   }
   refresh();
 }
@@ -137,7 +162,7 @@ function playFilm(index){
     art.style.backgroundImage=i===0?'linear-gradient(#111c1ab3,#111c1add),'+shotImage(filmArt[0]):shotImage(filmArt[i===1?1:2]);
     table.hidden=i!==0;table.replaceChildren();
     if(i===0){
-      audio.cue('success');
+      audio.cue('crystal-pulse');
       const surface=document.createElement('canvas');table.append(surface);
       let progress=0,last=performance.now();
       const pulse=now=>{
@@ -147,21 +172,25 @@ function playFilm(index){
         if(progress<1100)pulseFrame=requestAnimationFrame(pulse);
       };pulse(last);
     }else if(i===1){
-      speak(shot.line);
+      audio.setRoomLevel(.12);speak(shot.line);
     }else if(i===2){
-      audio.cue('knock');
+      audio.setRoomLevel(.12);audio.cue('knock',4.5,6.82);
     }else speak(shot.line);
   },onComplete:dock});
   film.show(index);if(document.hidden)film.pause();
 }
 function dock(){
   film?.dispose();film=null;cancelAnimationFrame(pulseFrame);stopVoice();
+  audio.setScene('canal');audio.setRoomLevel(1);
   state.phase='dock';state.active=null;save();
   $('sequence').hidden=false;$('sequence').dataset.shot='dock';$('shot-art').style.backgroundImage=shotImage('disposal-barge');
   $('shot-table').hidden=true;$('speaker').textContent='Outer-ring dock · Nightfall';
   $('line').textContent='A disposal barge slips past. A pale streak travels across the water, then pulses again.';
-  $('pause-film').hidden=true;$('dock-action').hidden=false;$('dock-action').focus({preventScroll:true});
+  $('pause-film').hidden=true;$('dock-action').hidden=false;$('revisit').hidden=false;$('dock-action').focus({preventScroll:true});
 }
+$('revisit').onclick=()=>{
+  state=fresh();view=null;save();location.reload();
+};
 $('dock-action').onclick=()=>{location.assign('../index.html#barge-reflection');};
 $('pause-film').onclick=()=>{
   if(!film)return;pausedByPlayer=!pausedByPlayer;
@@ -174,7 +203,7 @@ document.addEventListener('visibilitychange',()=>{
   if(document.hidden){film.pause();window.speechSynthesis?.pause();}
   else if(!pausedByPlayer){film.play();window.speechSynthesis?.resume();}
 });
-window.addEventListener('pagehide',()=>{film?.pause();stopVoice();audio.mute();});
+window.addEventListener('pagehide',()=>{if(state.phase==='shop'&&view)save();film?.pause();stopVoice();audio.mute();});
 window.addEventListener('pageshow',e=>{if(e.persisted)location.reload();});
 const soundButton=$('voice');
 function soundLabel(){

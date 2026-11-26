@@ -36,6 +36,8 @@ See [CREDITS.md](CREDITS.md) for attribution and artwork provenance. Suggested c
 
 ## First-person opening
 
-Play Season One from the title, or [start at Kaelan’s shop](dist/immersive/shop/index.html). Tap a prop to approach it. At the bench, slide the lamp and drag across the stone to tilt it. Both adjustments also have keyboard-accessible sliders. The first pulse saves the discovery and starts the inspector scene automatically. The dock reflection leads directly into the water-gate investigation.
+[View the playable bench artwork](dist/assets/generated/light-bench-study.webp).
+
+Play Season One from the title, or [start at Kaelan’s shop](dist/immersive/shop/index.html). Walk and strafe with the left stick, look with the right stick, or use WASD and the arrow keys. Tap a station to approach it. Touch either stick to take over. At the bench, drag the brass lamp to move the stand’s shadow across the sketch, then roll the quartz with a finger. Fine controls provide keyboard sliders and step buttons. The first pulse saves the discovery and starts the inspector scene automatically. The dock reflection leads directly into the water-gate investigation.
 
 The opening remembers the bench, cinematic shot, and dock on this device. Sound is optional, and the cutscene has captions and a pause control. Use **Replay the opening** on the season title to revisit the investigation while retaining later episode progress.

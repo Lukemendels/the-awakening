@@ -1,0 +1,10 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0b2025"><title>The Awakening · Kaelan’s shop</title><link rel="stylesheet" href="shop.css"></head>
+<body><main>
+<section id="arrival"><div class="intro-copy"><p class="kicker">The Awakening</p><h1>Kaelan’s shop</h1><p>The temple crystal shattered at sunset. You sketched a mark in the stone floor before the guards cleared the plaza. Do the rejected crystals in your family’s shop carry it too?</p><div id="cameras"><button data-view="first">Guided first person</button><button data-view="third">Three-quarter view</button></div><p class="note">The same investigation from two perspectives. Each remembers its own progress on this device.</p><a href="../">Return to Season One</a></div></section>
+<section id="room" hidden><canvas id="world" aria-label="Kaelan’s crystal shop"></canvas><div id="markers"></div>
+<header><span id="mode"></span><nav><button id="journal">Journal</button><button id="switch">Cameras</button></nav></header>
+<footer><p id="guide" role="status"></p><nav id="destinations" aria-label="Shop destinations"></nav></footer></section>
+<dialog id="panel"><div class="paper"><button id="close" aria-label="Return to shop">Close</button><p class="kicker" id="panel-label"></p><h2 id="heading"></h2><div id="content"></div></div></dialog>
+<p id="storage-error" role="status" hidden>This browser could not save progress. Keep the tab open to finish.</p>
+</main><script type="module" src="shop.mjs"></script></body></html>

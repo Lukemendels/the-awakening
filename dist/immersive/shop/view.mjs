@@ -4,6 +4,12 @@ import {clamp,wrapAngle} from '../engine.mjs';
 import {bindShopSticks} from './sticks.mjs';
 import {stations,pathTo,walkable} from './walk.mjs';
 
+// Three.js uses a vertical field of view. Bound the horizontal angle as well
+// so landscape phones do not magnify the room edges during a turn.
+const maxHorizontalFov=T.MathUtils.degToRad(82);
+const yawRate=T.MathUtils.degToRad(80),pitchRate=T.MathUtils.degToRad(48);
+function stickResponse(axis){return axis*(.35+.65*Math.abs(axis));}
+
 function wallChart(){
   const paper=document.createElement('canvas');paper.width=480;paper.height=240;
   const pen=paper.getContext('2d');
@@ -76,8 +82,10 @@ export class ShopView {
   }
   walk(dt){
     const {move,look,keys}=this.input;
-    this.yaw=wrapAngle(this.yaw+(look.x+Number(keys.has('arrowright'))-Number(keys.has('arrowleft')))*2.25*dt);
-    this.pitch=clamp(this.pitch+(-look.y+Number(keys.has('arrowup'))-Number(keys.has('arrowdown')))*1.5*dt,-1,1);
+    const turn=clamp(stickResponse(look.x)+Number(keys.has('arrowright'))-Number(keys.has('arrowleft')),-1,1);
+    const tilt=clamp(-stickResponse(look.y)+Number(keys.has('arrowup'))-Number(keys.has('arrowdown')),-1,1);
+    this.yaw=wrapAngle(this.yaw+turn*yawRate*dt);
+    this.pitch=clamp(this.pitch+tilt*pitchRate*dt,-1,1);
     const forward=-move.y+Number(keys.has('w'))-Number(keys.has('s'));
     const strafe=move.x+Number(keys.has('d'))-Number(keys.has('a'));
     const speed=2.2*dt/Math.max(1,Math.hypot(forward,strafe));
@@ -94,7 +102,8 @@ export class ShopView {
     const camera=this.room.camera,aspect=w/Math.max(1,h);
     if(this.resolution!==[w,h].join('/')){
       this.resolution=[w,h].join('/');this.room.renderer.setSize(w,h,false);
-      this.room.camera.aspect=aspect;this.room.camera.fov=72;
+      camera.aspect=aspect;
+      camera.fov=Math.min(62,T.MathUtils.radToDeg(2*Math.atan(Math.tan(maxHorizontalFov/2)/aspect)));
       this.room.camera.updateProjectionMatrix();
     }
     const moving=Boolean(this.arrival);
@@ -112,8 +121,9 @@ export class ShopView {
       const yaw=Math.atan2(tz-z,tx-x);
       const pitch=Math.atan2(ty-1.58,Math.hypot(tx-x,tz-z));
       const blend=this.reduce.matches?1:1-Math.exp(-7*dt);
-      this.yaw=wrapAngle(this.yaw+wrapAngle(yaw-this.yaw)*blend);
-      this.pitch+=(pitch-this.pitch)*blend;
+      const yawStep=wrapAngle(yaw-this.yaw)*blend,pitchStep=(pitch-this.pitch)*blend;
+      this.yaw=wrapAngle(this.yaw+(this.reduce.matches?yawStep:clamp(yawStep,-yawRate*dt,yawRate*dt)));
+      this.pitch+=this.reduce.matches?pitchStep:clamp(pitchStep,-pitchRate*dt,pitchRate*dt);
       facing=Math.abs(wrapAngle(yaw-this.yaw))<.06 && Math.abs(pitch-this.pitch)<.06;
     }
     camera.position.set(x,1.58,z);

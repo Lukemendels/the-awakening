@@ -237,9 +237,9 @@ export class ImmersiveAudio {
     // Limit simultaneous voices; stop the oldest before making another.
     if (this.voices.size>=12) this.voices.values().next().value.stop();
     const osc=ctx.createOscillator(), gain=ctx.createGain(), pan=ctx.createStereoPanner();
-    const settings={inspect:[440,.32,.10],success:[660,.65,.12],step:[92,.09,.035],warning:[180,.50,.09],bell:[294,1.7,.045],paper:[160,.12,.025],wood:[118,.16,.035],glass:[520,.38,.04],warning_low:[136,.65,.025],warning_mid:[157,.75,.035],warning_high:[178,.85,.045],water:[310,.7,.018],reveal:[220,2.2,.035],test:[440,.7,.50]};
+    const settings={inspect:[440,.32,.10],success:[660,.65,.12],step:[92,.09,.035],warning:[180,.50,.09],bell:[294,1.7,.045],paper:[160,.12,.025],wood:[118,.16,.035],knock:[112,.83,.18],glass:[520,.38,.04],warning_low:[136,.65,.025],warning_mid:[157,.75,.035],warning_high:[178,.85,.045],water:[310,.7,.018],reveal:[220,2.2,.035],test:[440,.7,.50]};
     const [freq,duration,level]=settings[kind]||settings.inspect;
-    osc.type=(kind.startsWith('warning')||kind==='wood')?'triangle':'sine';
+    osc.type=(kind.startsWith('warning')||kind==='wood'||kind==='knock')?'triangle':'sine';
     osc.frequency.setValueAtTime(freq,now);
     if(kind==='success')osc.frequency.exponentialRampToValueAtTime(freq*1.5,now+.18);
     if(kind==='step'||kind==='wood'||kind==='paper')osc.frequency.exponentialRampToValueAtTime(freq*.7,now+duration);
@@ -247,6 +247,14 @@ export class ImmersiveAudio {
     gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(level*position.attenuation,now+.015);
     if(kind==='test')gain.gain.exponentialRampToValueAtTime(level*position.attenuation*.65,now+.35);
     gain.gain.exponentialRampToValueAtTime(.0001,now+duration);
+    if(kind==='knock'){
+      gain.gain.cancelScheduledValues(now);
+      for(const offset of [0,.23,.56]){
+        gain.gain.setValueAtTime(.0001,now+offset);
+        gain.gain.exponentialRampToValueAtTime(level*position.attenuation,now+offset+.008);
+        gain.gain.exponentialRampToValueAtTime(.0001,now+offset+.12);
+      }
+    }
     pan.pan.value=position.pan; osc.connect(gain).connect(pan).connect(this.master);
     // Inharmonic partials give the tower bell and handled crystal a soft body,
     // rather than the same pure oscillator used for all interactions.

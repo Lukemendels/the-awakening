@@ -1,18 +1,25 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {fresh,restore,observe,compare} from '../dist/immersive/shop/investigation.mjs';
+import {fresh,restore,expose,sunsetAngle,crystalAngle} from '../dist/immersive/shop/investigation.mjs';
 import {stations,pathTo,walkable} from '../dist/immersive/shop/walk.mjs';
 
-test('the alignment needs the sketch, a backlit control and matching specimen',()=>{
-  const state=fresh();
-  for(const setup of [{},{tray:true},{sketch:true},{lamp:2,specimen:'condemned'},{turn:0}]){
-    Object.assign(state,setup);observe(state);compare(state);assert.equal(state.solved,false);
+test('the first focused pulse commits the inspector scene without a control specimen',()=>{
+  const s={...fresh(),tray:true,sketch:true};
+  assert.equal(expose(s),false);
+  s.lamp=sunsetAngle;assert.equal(expose(s),false);
+  s.turn=crystalAngle+4;assert.equal(expose(s),true);
+  assert.equal(s.clearSeen,false);assert.equal(s.phase,'film');assert.equal(s.shot,0);
+  assert.equal(expose(s),false);
+  assert.deepEqual(restore(JSON.parse(JSON.stringify(s))),s);
+});
+test('equipment, sketch, lighting and the actual condemned specimen all matter',()=>{
+  for(const change of [{tray:false},{sketch:false},{lamp:-30},{turn:22},{specimen:'approved'}]){
+    const s={...fresh(),sketch:true,tray:true,lamp:sunsetAngle,turn:crystalAngle,...change};
+    assert.equal(expose(s),false);assert.equal(s.phase,'shop');
+    if(s.specimen==='approved')assert.equal(s.clearSeen,true);
   }
-  state.specimen='approved';observe(state);compare(state);assert.equal(state.solved,false);
-  state.specimen='condemned';observe(state);compare(state);
-  assert.equal(state.solved,true);
-  assert.deepEqual(restore(JSON.parse(JSON.stringify(state))),state);
-  assert.equal(restore({solved:true}).solved,false);
+  assert.equal(restore({phase:'dock'}).phase,'shop');
+  assert.equal(restore(null,{solved:true}).phase,'film');
 });
 test('every station and the floor behind the bench have collision-free routes',()=>{
   const points=[[4.5,5.75],[6.5,2],...Object.values(stations).map(s=>s.approach)];

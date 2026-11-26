@@ -1,11 +1,11 @@
 # Season One investigation and pacing review
 
-The season already has a playable ending. Keep all 24 episodes for the next playtest. Each row identifies what earns its place and what to watch when the chosen camera reaches it. The shop has two playable camera candidates. The later rows describe the next playtests and revisions.
+The season already has a playable ending. Keep all 24 episodes for the next playtest. Each row identifies what earns its place and what to watch when the chosen camera reaches it. The shop now uses the selected guided first-person view. The later rows describe the next playtests and revisions.
 
 | Episode | Story contribution | Player experience to preserve or test |
 | --- | --- | --- |
 | 1 · City of Light and Sound | The ceremony fails in public. | Let players see the temple mark clearly enough to recognize it later. Time how long it takes to reach the first meaningful action. |
-| 2 · The Warning | The grading rules threaten Kaelan’s family. | Compare both specimens under identical light. Let the evidence precede Kaelan’s interpretation. |
+| 2 · The Warning | The grading rules threaten Kaelan’s family. | Reproduce the temple pulse with the condemned stone. The approved specimen is an optional control. |
 | 3 · Night’s Secrets | Condemned cargo carries the mystery beyond the shop. | Compare two views of the barge reflection. Check whether the branching relationship is readable when the water changes. |
 | 4 · Hidden Patterns | The workshop hides older markings and guards approach. | Let players expose the wall and protect the drawings. Keep those two actions close together. |
 | 5 · Hidden Records | Altered grading standards emerge in the archive. | Show price and rejection records together. Check whether players can explain why the numbers challenge the scarcity story. |
@@ -31,4 +31,4 @@ The season already has a playable ending. Keep all 24 episodes for the next play
 
 ## Next production decision
 
-Play both shop views on physical phones and record the camera choice using the procedure in the README. Polish that opening, then test Mira’s mount, Kai’s records and the city model in sequence. Carry established controls onward after testing an arc. Preserve existing progress when converting rooms. The release pass includes fresh-save playthroughs to the finale, resuming old saves on iPhone and Android, desktop input, sound-off play, and clearing or replacing the playtest-only opening recording.
+Test the guided first-person opening and the automatic inspector-to-dock transition on physical phones, then test Mira’s mount, Kai’s records and the city model in sequence. Carry established controls onward after testing an arc. Preserve existing progress when converting rooms. The release pass includes fresh-save playthroughs to the finale, resuming old saves on iPhone and Android, desktop input, sound-off play, and clearing or replacing the playtest-only opening recording.

@@ -2,22 +2,6 @@ import * as T from '../vendor/three.module.js';
 import {Room3D} from '../room3d.mjs';
 import {stations,pathTo} from './walk.mjs';
 
-function kaelan() {
-  const canvas=document.createElement('canvas');canvas.width=88;canvas.height=160;
-  const c=canvas.getContext('2d');
-  function shape(points,color){
-    c.fillStyle=color;c.beginPath();points.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.closePath();c.fill();
-  }
-  shape([[29,82],[58,82],[64,152],[50,153],[42,110],[39,153],[23,153]],'#23282e');
-  shape([[33,48],[50,44],[63,56],[72,99],[63,104],[56,77],[59,115],[22,116],[27,76],[18,104],[11,97],[22,59]],'#497c82');
-  shape([[33,48],[51,46],[62,56],[55,71],[31,113],[21,113],[43,67]],'#ba8c51');
-  shape([[28,17],[39,9],[55,12],[61,25],[54,43],[43,52],[32,43]],'#b77954');
-  shape([[26,25],[25,14],[37,5],[52,6],[63,16],[61,31],[55,21],[46,19],[33,28],[31,41]],'#362b27');
-  const tex=new T.CanvasTexture(canvas);tex.colorSpace=T.SRGBColorSpace;
-  const person=new T.Sprite(new T.SpriteMaterial({map:tex,transparent:true,alphaTest:.15}));
-  person.center.set(.5,0);person.scale.set(.82,1.5,1);return person;
-}
-
 function wallChart(){
   const paper=document.createElement('canvas');paper.width=480;paper.height=240;
   const pen=paper.getContext('2d');
@@ -43,12 +27,7 @@ export class ShopView {
     this.room.specimen.visible=true;
     this.room.scene.add(wallChart());
     this.room.scene.background=new T.Color(0x122e34);
-    this.overhead=new T.OrthographicCamera(-5,5,5,-5,.1,60);
-    this.overhead.position.set(10,10,13);this.overhead.lookAt(4.5,.85,4);
-    this.person=kaelan();this.room.scene.add(this.person);
-    this.shadow=new T.Mesh(new T.CircleGeometry(.25,20),new T.MeshBasicMaterial({color:0x171919,transparent:true,opacity:.45,depthWrite:false}));
-    this.shadow.rotation.x=-Math.PI/2;this.room.scene.add(this.shadow);
-    this.ray=new T.Raycaster();this.floor=new T.Plane(new T.Vector3(0,1,0),0);
+    this.ray=new T.Raycaster();
     this.target=new T.Vector3();this.projected=new T.Vector3();this.resolution='';
     this.reduce=matchMedia('(prefers-reduced-motion: reduce)');
     this.pins=Object.entries(stations).map(([id,s])=>{
@@ -58,7 +37,7 @@ export class ShopView {
     canvas.onclick=e=>{
 
       const rect=canvas.getBoundingClientRect();
-      this.ray.setFromCamera({x:2*(e.clientX-rect.left)/rect.width-1,y:1-2*(e.clientY-rect.top)/rect.height},this.mode==='first'?this.room.camera:this.overhead);
+      this.ray.setFromCamera({x:2*(e.clientX-rect.left)/rect.width-1,y:1-2*(e.clientY-rect.top)/rect.height},this.room.camera);
       // Pin buttons and taps on the physical props select the same approach.
       const hitProp=Object.entries(stations).map(([id,s])=>{
         const center=new T.Vector3(...s.point);center.y-=.23;
@@ -66,14 +45,10 @@ export class ShopView {
         return hit?{id,s,d:hit.distanceTo(this.ray.ray.origin)}:null;
       }).filter(Boolean).sort((a,b)=>a.d-b.d)[0];
       if(hitProp){this.go(hitProp.s.approach,hitProp.id);return;}
-      if(this.mode!=='third')return;
-      const hit=this.ray.ray.intersectPlane(this.floor,this.target);
-      if(hit)this.go([hit.x,hit.z]);
     };
   }
-  start(mode){
-    cancelAnimationFrame(this.frameId);this.mode=mode;this.path=[];this.arrival=null;this.pos=[4.5,5.75];this.look=new T.Vector3(4.5,1,1.7);
-    this.room.cutawayWalls.visible=mode==='first';this.person.visible=this.shadow.visible=mode==='third';
+  start(){
+    cancelAnimationFrame(this.frameId);this.path=[];this.arrival=null;this.pos=[4.5,5.75];this.look=new T.Vector3(4.5,1,1.7);
     this.resolution='';this.last=performance.now();this.frame(this.last);
   }
   stop(){cancelAnimationFrame(this.frameId);this.path=[];this.arrival=null;}
@@ -88,14 +63,11 @@ export class ShopView {
     if(document.hidden || document.querySelector('dialog[open]')){this.last=time;return;}
     const w=this.canvas.clientWidth,h=this.canvas.clientHeight;
     const dt=Math.min(.08,(time-this.last)/1000);this.last=time;
-    const camera=this.mode==='first'?this.room.camera:this.overhead,aspect=w/Math.max(1,h);
-    if(this.resolution!==[w,h,this.mode].join('/')){
-      this.resolution=[w,h,this.mode].join('/');this.room.renderer.setSize(w,h,false);
+    const camera=this.room.camera,aspect=w/Math.max(1,h);
+    if(this.resolution!==[w,h].join('/')){
+      this.resolution=[w,h].join('/');this.room.renderer.setSize(w,h,false);
       this.room.camera.aspect=aspect;this.room.camera.fov=72;
       this.room.camera.updateProjectionMatrix();
-      const half=Math.max(4.7,5.6/aspect);
-      Object.assign(this.overhead,{left:-half*aspect,right:half*aspect,top:half,bottom:-half});
-      this.overhead.updateProjectionMatrix();
     }
     const moving=this.path.length>0;
     let remaining=this.reduce.matches?Infinity:dt*4.5;
@@ -105,12 +77,11 @@ export class ShopView {
       else{this.pos[0]+=dx*remaining/d;this.pos[1]+=dz*remaining/d;remaining=0;}
     }
     const [x,z]=this.pos;
-    this.person.position.set(x,moving && !this.reduce.matches ? .04*Math.abs(Math.sin(time*.012)):0,z);
-    this.shadow.position.set(x,.025,z);
-    if(this.mode==='first'){
-      if(this.arrival){const s=stations[this.arrival];this.target.set(...s.point);this.look.lerp(this.target,this.reduce.matches?1:1-Math.exp(-8*dt));}
-      camera.position.set(x,1.58,z);camera.lookAt(this.look);
+    if(this.arrival){
+      this.target.set(...stations[this.arrival].point);
+      this.look.lerp(this.target,this.reduce.matches?1:1-Math.exp(-8*dt));
     }
+    camera.position.set(x,1.58,z);camera.lookAt(this.look);
     camera.updateMatrixWorld();
     for(const [b,s] of this.pins){
       const p=this.projected.set(...s.point).project(camera);

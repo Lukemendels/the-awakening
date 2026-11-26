@@ -21,3 +21,5 @@ The walkable shop uses eight WebP textures generated with OpenAI image generatio
 `shop-interior-study.webp` is a frame captured from the walkable shop during playtesting.
 
 The canal seen through the playable window uses `shop-canal-panorama.webp`, generated with OpenAI image generation using the earlier canal view as a reference. The panoramic texture wraps around the shop, with water below the sill and sky above the transom.
+
+Episode 3 uses `night-quay-panorama.webp` and `barge-overlook.webp`, generated with OpenAI image generation using the disposal barge shot as a reference. The daytime shop panorama also supplied the spherical projection reference. The lower-steps sighting reuses the disposal barge shot. The game draws the same optical features over both views and the movable tracing sheet. `quay-flagstones.webp` and `quay-sketchboard.webp` are generated surface and prop textures. The planking and ballast textures are crops of the disposal barge image.

@@ -13,28 +13,28 @@ const furniture = [
 ];
 export const walkable = (x,z)=>canOccupy(map,x,z,.2,furniture);
 const step=.25;
-function reachable(a,b) {
+function reachable(a,b,canWalk) {
   const count=Math.max(1,Math.ceil(Math.hypot(a[0]-b[0],a[1]-b[1])/.08));
-  for(let i=1;i<=count;i++) if(!walkable(a[0]+(b[0]-a[0])*i/count,a[1]+(b[1]-a[1])*i/count)) return false;
+  for(let i=1;i<=count;i++) if(!canWalk(a[0]+(b[0]-a[0])*i/count,a[1]+(b[1]-a[1])*i/count)) return false;
   return true;
 }
-export function pathTo(from,to) {
-  if(!walkable(...to)) return null;
-  if(reachable(from,to)) return [to];
+export function pathTo(from,to,canWalk=walkable) {
+  if(!canWalk(...to)) return null;
+  if(reachable(from,to,canWalk)) return [to];
   const snapped=from.map(v=>Math.round(v/step)*step);
-  const start=[[0,0],[step,0],[-step,0],[0,step],[0,-step]].map(([x,z])=>[snapped[0]+x,snapped[1]+z]).find(p=>reachable(from,p));
+  const start=[[0,0],[step,0],[-step,0],[0,step],[0,-step]].map(([x,z])=>[snapped[0]+x,snapped[1]+z]).find(p=>reachable(from,p,canWalk));
   if(!start)return null;
   const queue=[start], parent=new Map([[String(start),null]]);
   for(let i=0;i<queue.length;i++){
     const p=queue[i];
-    if(reachable(p,to)){
+    if(reachable(p,to,canWalk)){
       const path=[to];
       for(let q=p;q;q=parent.get(String(q))) path.unshift(q);
       return path;
     }
     for(const [dx,dz] of [[step,0],[-step,0],[0,step],[0,-step]]){
       const q=[p[0]+dx,p[1]+dz],key=String(q);
-      if(parent.has(key)||!reachable(p,q)) continue;
+      if(parent.has(key)||!reachable(p,q,canWalk)) continue;
       parent.set(key,p);queue.push(q);
     }
   }

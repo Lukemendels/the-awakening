@@ -10,15 +10,24 @@ const maxHorizontalFov=T.MathUtils.degToRad(82);
 const yawRate=T.MathUtils.degToRad(80),pitchRate=T.MathUtils.degToRad(48);
 function stickResponse(axis){return axis*(.35+.65*Math.abs(axis));}
 
+// At full stick this is a relaxed 92 footfalls a minute, including guided walks.
+const walkingSpeed=1.25, stepLength=.82;
+const shopLayout={
+  Interior:ShopInterior,stations,walkable,start:[4.5,5.75],yaw:-Math.PI/2,
+  height:()=>0,
+  footstep:(x,z)=>Math.abs(x-4.38)<.605&&Math.abs(z-4.68)<1.59?'rug-step':'floor-step'
+};
+
 export class ShopView {
-  constructor(canvas,markers,onArrive,onMessage,audio){
+  constructor(canvas,markers,onArrive,onMessage,audio,layout=shopLayout){
+    this.layout=layout;
     this.audio=audio;
     this.canvas=canvas;this.onArrive=onArrive;this.onMessage=onMessage;
-    this.room=new ShopInterior(canvas);
+    this.room=new layout.Interior(canvas);
     this.ray=new T.Raycaster();
     this.target=new T.Vector3();this.projected=new T.Vector3();this.resolution='';
     this.reduce=matchMedia('(prefers-reduced-motion: reduce)');
-    this.pins=Object.entries(stations).map(([id,s])=>{
+    this.pins=Object.entries(layout.stations).map(([id,s])=>{
       const b=document.createElement('button');b.className='pin';b.textContent=s.mark;b.setAttribute('aria-label','Approach '+s.label);markers.append(b);
       b.onclick=()=>this.go(s.approach,id);return [b,s];
     });
@@ -27,7 +36,7 @@ export class ShopView {
       const rect=canvas.getBoundingClientRect();
       this.ray.setFromCamera({x:2*(e.clientX-rect.left)/rect.width-1,y:1-2*(e.clientY-rect.top)/rect.height},this.room.camera);
       // Pin buttons and taps on the physical props select the same approach.
-      const hitProp=Object.entries(stations).map(([id,s])=>{
+      const hitProp=Object.entries(layout.stations).map(([id,s])=>{
         const center=new T.Vector3(...s.point);center.y-=.23;
         const hit=this.ray.ray.intersectBox(new T.Box3().setFromCenterAndSize(center,new T.Vector3(1.25,1.05,.8)),new T.Vector3());
         return hit?{id,s,d:hit.distanceTo(this.ray.ray.origin)}:null;
@@ -37,8 +46,8 @@ export class ShopView {
   }
   start(pose){
     this.stride=0;this.running=true;this.path=[];this.arrival=null;
-    this.pos=[4.5,5.75];this.yaw=-Math.PI/2;this.pitch=-.13;
-    if(pose && [pose.x,pose.z,pose.yaw,pose.pitch].every(Number.isFinite) && walkable(pose.x,pose.z)){
+    this.pos=[...this.layout.start];this.yaw=this.layout.yaw;this.pitch=-.13;
+    if(pose && [pose.x,pose.z,pose.yaw,pose.pitch].every(Number.isFinite) && this.layout.walkable(pose.x,pose.z)){
       this.pos=[pose.x,pose.z];this.yaw=wrapAngle(pose.yaw);this.pitch=clamp(pose.pitch,-1,1);
     }
     this.input=bindShopSticks(document.getElementById('move-pad'),document.getElementById('look-pad'),
@@ -52,12 +61,12 @@ export class ShopView {
   pause(){this.path=[];this.arrival=null;this.input?.reset();}
   stop(){this.running=false;this.pause();cancelAnimationFrame(this.frameId);}
   go(to,id){
-    const [x,,z]=stations[id].point;
+    const [x,,z]=this.layout.stations[id].point;
     const inReach=Math.hypot(this.pos[0]-x,this.pos[1]-z)<=1.3;
-    const path=inReach?[]:pathTo(this.pos,to);
+    const path=inReach?[]:pathTo(this.pos,to,this.layout.walkable);
     if(!path){this.onMessage('Move clear of the furniture and try again.');return;}
     this.input.reset();this.path=path;this.arrival=id;
-    this.onMessage('Approaching '+stations[id].label.toLowerCase()+'…');
+    this.onMessage('Approaching '+this.layout.stations[id].label.toLowerCase()+'…');
   }
   walk(dt){
     const {move,look,keys}=this.input;
@@ -67,11 +76,11 @@ export class ShopView {
     this.pitch=clamp(this.pitch+tilt*pitchRate*dt,-1,1);
     const forward=-move.y+Number(keys.has('w'))-Number(keys.has('s'));
     const strafe=move.x+Number(keys.has('d'))-Number(keys.has('a'));
-    const speed=2.2*dt/Math.max(1,Math.hypot(forward,strafe));
+    const speed=walkingSpeed*dt/Math.max(1,Math.hypot(forward,strafe));
     const dx=speed*(forward*Math.cos(this.yaw)-strafe*Math.sin(this.yaw));
     const dz=speed*(forward*Math.sin(this.yaw)+strafe*Math.cos(this.yaw));
-    if(walkable(this.pos[0]+dx,this.pos[1]))this.pos[0]+=dx;
-    if(walkable(this.pos[0],this.pos[1]+dz))this.pos[1]+=dz;
+    if(this.layout.walkable(this.pos[0]+dx,this.pos[1]))this.pos[0]+=dx;
+    if(this.layout.walkable(this.pos[0],this.pos[1]+dz))this.pos[1]+=dz;
   }
   frame=(time)=>{
     this.frameId=requestAnimationFrame(this.frame);
@@ -88,26 +97,28 @@ export class ShopView {
     const [fromX,fromZ]=this.pos;
     const moving=Boolean(this.arrival);
     if(!moving)this.walk(dt);
-    let remaining=this.reduce.matches?Infinity:dt*2.8;
+    let remaining=this.reduce.matches?Infinity:dt*walkingSpeed;
     while(this.path.length && remaining>0){
       const [x,z]=this.path[0],dx=x-this.pos[0],dz=z-this.pos[1],d=Math.hypot(dx,dz);
       if(d<=remaining){this.pos=[x,z];remaining-=d;this.path.shift();}
       else{this.pos[0]+=dx*remaining/d;this.pos[1]+=dz*remaining/d;remaining=0;}
     }
     const [x,z]=this.pos;
+    const eye=1.58+this.layout.height(x,z);
     let facing=false;
     if(this.arrival){
-      const [tx,ty,tz]=stations[this.arrival].point;
+      const station=this.layout.stations[this.arrival];
+      const [tx,ty,tz]=station.lookAt??station.point;
       const yaw=Math.atan2(tz-z,tx-x);
-      const pitch=Math.atan2(ty-1.58,Math.hypot(tx-x,tz-z));
+      const pitch=Math.atan2(ty-eye,Math.hypot(tx-x,tz-z));
       const blend=this.reduce.matches?1:1-Math.exp(-7*dt);
       const yawStep=wrapAngle(yaw-this.yaw)*blend,pitchStep=(pitch-this.pitch)*blend;
       this.yaw=wrapAngle(this.yaw+(this.reduce.matches?yawStep:clamp(yawStep,-yawRate*dt,yawRate*dt)));
       this.pitch+=this.reduce.matches?pitchStep:clamp(pitchStep,-pitchRate*dt,pitchRate*dt);
       facing=Math.abs(wrapAngle(yaw-this.yaw))<.06 && Math.abs(pitch-this.pitch)<.06;
     }
-    camera.position.set(x,1.58,z);
-    camera.lookAt(x+Math.cos(this.yaw),1.58+Math.tan(this.pitch),z+Math.sin(this.yaw));
+    camera.position.set(x,eye,z);
+    camera.lookAt(x+Math.cos(this.yaw),eye+Math.tan(this.pitch),z+Math.sin(this.yaw));
     if(x!==this.lastX||z!==this.lastZ||this.yaw!==this.lastYaw){
       this.audio.setListener(x,z,this.yaw);
       this.lastX=x;this.lastZ=z;this.lastYaw=this.yaw;
@@ -115,10 +126,9 @@ export class ShopView {
     const traveled=Math.hypot(x-fromX,z-fromZ);
     if(traveled>.001 && !(moving&&this.reduce.matches)){
       this.stride+=traveled;
-      if(this.stride>=.70){
-        this.stride%=.70;
-        const onRunner=Math.abs(x-4.38)<.605&&Math.abs(z-4.68)<1.59;
-        this.audio.cue(onRunner?'rug-step':'floor-step',x,z);
+      if(this.stride>=stepLength){
+        this.stride%=stepLength;
+        this.audio.cue(this.layout.footstep(x,z),x,z);
       }
     }else this.stride=.34;
     camera.updateMatrixWorld();
@@ -128,6 +138,7 @@ export class ShopView {
       b.hidden=moving||Math.hypot(x-s.point[0],z-s.point[2])>2.65||p.z>1||p.z< -1||px<22||px>w-22||py<62||py>h-65;
       if(!b.hidden){b.style.left=px+'px';b.style.top=py+'px';}
     }
+    this.room.update?.(time,this.reduce.matches);
     this.room.renderer.render(this.room.scene,camera);
     if(facing&&!this.path.length&&this.arrival){const id=this.arrival;this.arrival=null;this.onArrive(id);}
   };

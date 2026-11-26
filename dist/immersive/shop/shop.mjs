@@ -202,7 +202,7 @@ function dock(){
 $('revisit').onclick=()=>{
   state=fresh();view=null;save();location.reload();
 };
-$('dock-action').onclick=()=>{location.assign('../index.html#barge-reflection');};
+$('dock-action').onclick=()=>{location.assign('../canal/index.html');};
 $('pause-film').onclick=()=>{
   if(!film)return;pausedByPlayer=!pausedByPlayer;
   if(pausedByPlayer){film.pause();window.speechSynthesis?.pause();}else{film.play();window.speechSynthesis?.resume();}

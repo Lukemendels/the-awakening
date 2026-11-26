@@ -126,6 +126,9 @@ function arcCinematic(phase,index=0){
  buttons.append(button('Skip scene',()=>{stopSpeech();if(phase==='intro')enterArcRoom(true);else nextArcEpisode();},'secondary'));buttons.append(button('Sound & narration',settings,'secondary'));copy.append(buttons,el('p',`${index+1} / ${clips.length} · Read at your own pace`,'note'));page.append(bg,copy);screen.append(page);speak(text);
 }
 function enterArcRoom(resetPosition){
+ if(state.arc?.episode===3){
+   state.arc.phase='room';state.arc.clip=0;save();location.replace('./canal/index.html');return;
+ }
  nextPlaying=false;finalPlaying=false;finalSets?.setScene('opening');nextSets?.setScene('opening');stopSpeech();activateAudioIfWanted();state.arc=restoreArc(state.arc);state.arc.phase='room';state.arc.clip=0;const sc=sceneFor(state.arc);if(resetPosition){state.x=sc.start.x;state.y=sc.start.y;state.angle=sc.start.angle;state.pitch=0;}save();clear();screen.hidden=true;room.hidden=false;arcPlaying=true;paused=false;$('room-label').textContent='THE AWAKENING · EPISODE '+sc.episode;view.setAttribute('aria-label','First-person view of '+sc.place+'. Drag to look.');$('journal').hidden=false;$('clue-status').textContent='';$('objective').textContent=sc.objective;last=performance.now();
  audio.setScene(({3:'canal',4:'workshop',5:'archive',6:'artisan',7:'tower'})[sc.episode]);audio.setEmitter('water',sc.episode===3?4.5:7.3,sc.episode===3?1.2:2);
  if(renderer){arcSets??=new ArcRooms(renderer);arcObstacles=arcSets.setScene(sc.roomId||sc.id,sc.objects);if(sc.episode===6)arcSets.setMountingState(state.arc.mount);}
@@ -237,21 +240,7 @@ function syncOrientation(){
 window.addEventListener('resize',syncOrientation);syncOrientation();
 window.addEventListener('pagehide',()=>{pauseIntro();soundToggleEpoch++;save();stopSpeech();audio.mute();});window.addEventListener('pageshow',event=>{if(event.persisted){state=loadSave(storage);location.reload();return;}soundToggleEpoch++;audio.mute();state.sound=false;if(!overlay.hidden&&overlay.dataset.soundSettings)settings();});document.addEventListener('visibilitychange',()=>{audio.setHidden(document.hidden);if(document.hidden){pauseIntro();controls?.reset();arcVisualSession?.cancelInteraction?.();save();stopSpeech();}});requestAnimationFrame(frame);
 if(location.hash==='#barge-reflection'){
-  history.replaceState(null,'',location.pathname+location.search);
-  state.scene='complete';save();
-  if(!state.nextArc&&!state.finalArc&&(!state.arc||(canResumeArc(state.arc)&&state.arc.episode===3&&state.arc.phase!=='outro'))){
-    state.arc??=freshArc();enterArcRoom(true);
-    const sc=sceneFor(state.arc),steps=sc.objects.find(o=>o.id==='near_view');
-    if(canOccupy(map,steps.x,steps.y+1,.18,arcObstacles)){
-      state.x=steps.x;state.y=steps.y+1;state.angle=-Math.PI/2;state.pitch=0;
-    }
-    arcDispatch({type:'interact',id:steps.id,choice:'observe'},steps);
-  }else{
-    start();const c=card('The barge reflection','Two streaks meet on the water. The condemned cargo gives the same pulse as the stone in the shop.');
-    c.append(button('Resume the journey',resumeArc));
-  }
+  location.replace('./canal/index.html');
+}else if(location.hash==='#continue-journey'){
+  history.replaceState(null,'',location.pathname+location.search);resumeArc();
 }else start();
-
-document.addEventListener('keydown',e=>{if(overlay.hidden)return;if(e.key==='Escape'&&!overlay.dataset.locked){e.preventDefault();close();return;}if(e.key==='Tab'){const nodes=[...overlay.querySelectorAll('button:not(:disabled),input:not(:disabled),a[href]')];if(!nodes.length)return;const first=nodes[0],last=nodes.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}});
-
-view.addEventListener('webglcontextlost',e=>{e.preventDefault();controls?.reset();audio.mute();state.sound=false;const c=card('3D view interrupted','The graphics context was lost. Return to the title and reload this page to resume from your last saved position.');overlay.dataset.locked='true';c.append(button('Return to title',start));});

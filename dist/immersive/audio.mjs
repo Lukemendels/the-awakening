@@ -246,13 +246,13 @@ export class ImmersiveAudio {
   cue(kind,x=this.listener.x,z=this.listener.z) {
     if (!this.enabled||this.hidden||!this.context||!this.master||kind==='step'||kind==='inspect') return;
     const ctx=this.context, now=ctx.currentTime, position=this.spatial(x,z);
-    const foot=kind==='floor-step'||kind==='rug-step';
+    const foot=kind.endsWith('-step');
     if (now-(this.lastCue.get(kind) ?? -Infinity)<(foot?.18:kind==='brass-slide'?.21:.4)) return;
     this.lastCue.set(kind,now);
     // Limit simultaneous voices; stop the oldest before making another.
     if (this.voices.size>=12) this.voices.values().next().value.stop();
     const osc=ctx.createOscillator(), gain=ctx.createGain(), pan=ctx.createStereoPanner();
-    const settings={inspect:[440,.32,.10],success:[660,.65,.12],step:[92,.09,.035],'floor-step':[185,.145,.29],'rug-step':[150,.105,.15],lap:[390,.76,.055],warning:[180,.50,.09],bell:[294,1.7,.045],paper:[160,.12,.025],wood:[118,.16,.035],knock:[112,.83,.18],'brass-slide':[123,.22,.055],'stone-seat':[910,.15,.065],'crystal-pulse':[147,1.45,.18],glass:[520,.38,.04],warning_low:[136,.65,.025],warning_mid:[157,.75,.035],warning_high:[178,.85,.045],water:[310,.7,.018],reveal:[220,2.2,.035],test:[440,.7,.50]};
+    const settings={inspect:[440,.32,.10],success:[660,.65,.12],step:[92,.09,.035],'floor-step':[185,.145,.29],'rug-step':[150,.105,.15],'stone-step':[214,.12,.23],lap:[390,.76,.055],warning:[180,.50,.09],bell:[294,1.7,.045],paper:[160,.12,.025],wood:[118,.16,.035],knock:[112,.83,.18],'brass-slide':[123,.22,.055],'stone-seat':[910,.15,.065],'crystal-pulse':[147,1.45,.18],glass:[520,.38,.04],warning_low:[136,.65,.025],warning_mid:[157,.75,.035],warning_high:[178,.85,.045],water:[310,.7,.018],reveal:[220,2.2,.035],test:[440,.7,.50]};
     const [freq,duration,level]=settings[kind]||settings.inspect;
     osc.type=(foot||kind.startsWith('warning')||kind==='wood'||kind==='knock')?'triangle':'sine';
     osc.frequency.setValueAtTime(foot?freq*(.9+Math.random()*.2):freq,now);
@@ -282,7 +282,7 @@ export class ImmersiveAudio {
       const length=Math.max(1,Math.floor(ctx.sampleRate*duration));
       const buffer=ctx.createBuffer(1,length,ctx.sampleRate), data=buffer.getChannelData(0);
       let smooth=0;for(let i=0;i<length;i++){smooth=.72*smooth+.28*(Math.random()*2-1);data[i]=smooth;}
-      const cutoff={'rug-step':620,'floor-step':1100,water:1100,paper:1900,'brass-slide':1200};
+      const cutoff={'stone-step':1580,'rug-step':620,'floor-step':1100,water:1100,paper:1900,'brass-slide':1200};
       source.buffer=buffer;filter.type='bandpass';filter.Q.value=.7;
       filter.frequency.value=kind==='lap'?560+Math.random()*240:(cutoff[kind]??380);
       const strength=foot?1.6:kind==='lap'?3:.7;

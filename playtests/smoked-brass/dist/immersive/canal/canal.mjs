@@ -152,9 +152,9 @@ $('sound').onclick=async()=>{
   else{soundWanted=true;await unlock();}
   soundLabel();save();
 };
-function enter(){
+function enter(fromGesture=true){
   if(entered)return;
-  entered=true;unlock();$('arrival').hidden=true;
+  entered=true;if(fromGesture)unlock();$('arrival').hidden=true;
   if(arc.phase==='outro'||flags().ep3_relation){if(arc.phase!=='outro')arc=beginOutro(arc);reveal();return;}
   arc.phase='room';arc.clip=0;$('room').hidden=false;
   try{
@@ -212,7 +212,7 @@ nextButton.addEventListener('touchend',e=>{
   if(Math.hypot(end.clientX-start.clientX,end.clientY-start.clientY)<16&&
      document.elementFromPoint(end.clientX,end.clientY)===nextButton)nextButton.click();
 },{passive:false});
-$('enter').onclick=enter;$('enter').disabled=false;$('journal').onclick=()=>inspect('journal');$('close').onclick=close;
+$('enter').onclick=()=>enter();$('enter').disabled=false;$('journal').onclick=()=>inspect('journal');$('close').onclick=close;
 panel.addEventListener('cancel',e=>{e.preventDefault();close();});
 document.addEventListener('visibilitychange',()=>{
   audio.setHidden(document.hidden);
@@ -221,3 +221,10 @@ document.addEventListener('visibilitychange',()=>{
 });
 window.addEventListener('pagehide',()=>{save();audio.mute();window.speechSynthesis?.cancel();});
 window.addEventListener('pageshow',e=>{if(e.persisted)location.reload();});
+
+if(location.hash==='#from-window'){
+  enter(false);
+  for(const event of ['pointerdown','keydown'])document.addEventListener(event,e=>{
+    if(e.target!==$('sound'))unlock();
+  },{capture:true,once:true});
+}

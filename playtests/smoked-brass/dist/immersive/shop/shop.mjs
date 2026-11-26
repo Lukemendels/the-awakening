@@ -47,7 +47,8 @@ function begin(){
   if(state.inRoomHold){showHold();return;}
   if(!state.carrying&&!state.active&&!journey.shopOpening)state.active='bench';
   state.sketch=true;state.tray=true;
-  save();updateTicket();if(state.active)inspect(state.active);
+  save();updateTicket();if(state.carrying)$('guide').textContent='Compare your ticket with the stamp and cuts on the crates.';
+  if(state.active)inspect(state.active);
 }
 function updateTicket(){
   const el=$('ticket-in-hand');el.hidden=!state.carrying||state.phase!=='shop';
@@ -158,8 +159,8 @@ function bench(){
   const carry=button('Carry this ticket to the crates',()=>{
     state.carrying=true;close('Compare the ticket with the crates beside the shelf.');
     ticketArmed=false;updateTicket();
-    if(view)view.go([4.54,view.canvas.clientWidth<view.canvas.clientHeight?5.9:4.52],'crate-08',{lookAt:[4.54,.80,1.53],message:'Going to the loading crates…',
-      arrived:()=>{$('guide').textContent='Drag the hold ticket onto its crate, or tap the ticket and then the crate.';}});
+    if(view)view.go([4.54,view.canvas.clientWidth<view.canvas.clientHeight?6.70:4.52],'crate-08',{lookAt:[4.54,.80,1.53],message:'Going to the loading crates…',
+      arrived:()=>{save();$('guide').textContent='Drag the hold ticket onto its crate, or tap the ticket and then the crate.';}});
 
   },footer);carry.className='carry-ticket';
   const tabs=[];
@@ -253,12 +254,14 @@ function dock(){
   $('shot-table').hidden=true;$('speaker').textContent='Outer-ring dock · Nightfall';
   $('line').textContent=state.held?'The inspector calls back, “Premium grade next time.” Father pulls the red cord tight on crate '+state.held+'. Beneath the departing barge, two threads of light bend in the dark.': 'The collector takes the remaining cargo down to the quay. Two pale threads gleam beneath the departing barge.';
   $('room').hidden=true;
+  $('revisit').textContent=state.held?'Stay with Father':'Revisit the shop';
   $('dock-action').hidden=false;$('revisit').hidden=false;$('dock-action').focus({preventScroll:true});
 }
 $('revisit').onclick=()=>{
-  state=fresh();view=null;save();location.reload();
+  if(state.held){state.phase='film';state.inRoomHold=true;state.active=null;}else state=fresh();
+  view=null;save();location.reload();
 };
-$('dock-action').onclick=()=>{location.assign(journeyUrl('../canal/index.html'));};
+$('dock-action').onclick=()=>{location.assign(journeyUrl('../canal/index.html#from-window'));};
 $('next-shot').onclick=()=>{if(film)film.next();};
 document.addEventListener('visibilitychange',()=>{
   audio.setHidden(document.hidden);

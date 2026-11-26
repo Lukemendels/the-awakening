@@ -75,3 +75,31 @@ dialog:has(.workbench) h2{font-size:clamp(24px,4vmin,39px);line-height:44px;marg
   #content.workbench .feedback,#content.workbench .hint{margin:0;position:absolute;bottom:53px;left:0;right:0;text-align:center;background:linear-gradient(transparent,#251a10bb);color:#fff2d9;padding:12px 10px 3px;text-shadow:0 1px 3px #261505;pointer-events:none}
   #content.workbench .hint:not(:empty){background:#172922ee;bottom:80px;font-size:.9rem;border-radius:5px;left:10%;right:10%;padding:5px}
 }
+
+.sample-bench .stage{width:100%;height:auto;aspect-ratio:2/1}
+.sample-controls{min-width:0}.sample-controls .feedback{min-height:3em}.sample-decision{padding-top:6px;border-top:1px solid var(--line);margin-top:12px}
+@media(orientation:landscape) and (max-height:580px){
+  dialog:has(.sample-bench){width:min(96vw,1040px)}
+  .sample-bench{display:grid;grid-template-columns:minmax(0,1.22fr) minmax(250px,1fr);gap:14px;align-items:start}
+  .sample-bench .stage{position:sticky;top:4px}
+  .sample-controls button{font-size:.87rem;padding:4px 8px}
+}
+
+.held-slip{position:absolute;top:4%;right:5%;max-width:12em;margin:0;padding:.55em .8em;background:#dccea9;color:#3d3323;font:bold .9rem/1.3 Georgia,serif;box-shadow:0 3px 12px #170e06a3;transform:rotate(2deg)}
+
+@media(orientation:landscape) and (max-height:440px){
+  dialog:has(.sample-bench){height:100svh;max-height:100svh;width:100vw;border:0;border-radius:0}
+  dialog:has(.sample-bench) .paper{height:100%;padding:5px 14px;display:grid;grid-template-columns:1fr auto;grid-template-rows:44px minmax(0,1fr);gap:4px}
+  dialog:has(.sample-bench) #close{grid-area:1/2}
+  dialog:has(.sample-bench) #panel-label{display:none}
+  dialog:has(.sample-bench) h2{grid-area:1/1;align-self:center;margin:0}
+  .sample-bench{grid-column:1/-1;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);align-items:start;overflow:hidden}
+  .sample-controls{max-height:100%;overflow:auto}
+  #content.sample-bench p{margin:2px 0 6px}
+  .sample-controls .actions{gap:4px}
+  .sample-decision{margin-top:6px}
+}
+
+@media(orientation:landscape) and (max-height:440px){
+  .sample-controls .actions button{flex:1 1 40%;min-width:0;padding-inline:3px}
+}

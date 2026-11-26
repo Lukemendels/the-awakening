@@ -2,7 +2,7 @@ export const sunsetAngle = 26;
 export const crystalAngle = -18;
 export const fresh = () => ({
   phase:'shop', shot:0, sketch:false, tray:false, drawerStone:false, specimen:'condemned',
-  lamp:-30, turn:16, hints:0, clearSeen:false, active:null
+  lamp:-30, turn:16, hints:0, clearSeen:false, featherSeen:false, tested:null, active:null
 });
 
 export const hasStone = s => s.tray || s.drawerStone;
@@ -19,8 +19,10 @@ export function restore(raw,flags={}) {
     if(Number.isInteger(raw[key]) && raw[key]>=min && raw[key]<=max)state[key]=raw[key];
   }
   state.drawerStone=raw.drawerStone===true;
-  if(raw.specimen==='approved' && state.tray)state.specimen='approved';
+  if(raw.specimen==='approved' && hasStone(state))state.specimen='approved';
   state.clearSeen=raw.clearSeen===true;
+  state.featherSeen=raw.featherSeen===true;
+  if(raw.tested==='approved'&&state.clearSeen||raw.tested==='condemned'&&state.featherSeen)state.tested=raw.tested;
   if(['notebook','shelf','bench','journal','drawer'].includes(raw.active))state.active=raw.active;
   if(['film','dock'].includes(raw.phase) && hasStone(state) && state.sketch)state.phase=raw.phase;
   return state;
@@ -39,10 +41,16 @@ export function projection(s){
       Math.abs(light)<=5 && Math.abs(tilt)<=5
   };
 }
-export function expose(s){
-  if(s.phase!=='shop'||!hasStone(s))return false;
-  if(s.specimen==='approved')s.clearSeen=true;
-  if(!projection(s).aligned)return false;
-  Object.assign(s,{phase:'film',shot:0,active:null,lamp:sunsetAngle,turn:crystalAngle});
+// Both samples use the same stop on the lamp and the same seat in the brass rest.
+export function testSpecimen(state,specimen){
+  if(state.phase!=='shop'||!hasStone(state)||!state.sketch||!['approved','condemned'].includes(specimen))return false;
+  Object.assign(state,{specimen,tested:specimen,lamp:sunsetAngle,turn:crystalAngle});
+  if(specimen==='approved')state.clearSeen=true;
+  else state.featherSeen=true;
+  return true;
+}
+export function keepSpecimen(state,specimen){
+  if(state.phase!=='shop'||!state.sketch||!hasStone(state)||!state.clearSeen||!state.featherSeen||specimen!=='condemned')return false;
+  Object.assign(state,{phase:'film',specimen,shot:0,active:null,lamp:sunsetAngle,turn:crystalAngle});
   return true;
 }

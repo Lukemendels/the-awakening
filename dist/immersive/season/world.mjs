@@ -1,12 +1,10 @@
 import * as T from '../vendor/three.module.js';
+import {furnishRoom} from './furnishings.mjs';
+import {workshopLayout} from './workshop.mjs';
+import {figure} from './figures.mjs';
+import {disposeInterior} from '../room3d.mjs';
 import {floorPlan} from './layout.mjs';
 const assets=new URL('../../assets/generated/season/',import.meta.url);
-// Width/height of the tightly trimmed photographic cutouts and their height in metres.
-const sizes={
-  shutter:[.97,1.65],'window-bench':[1.103,1.38],mount:[.975,1.24],arch:[.91,1.98],
-  plan:[.902,1.15],robe:[.992,1.00],desk:[1.059,1.26],plinth:[.532,1.18],specimen:[.532,1.18],
-  basin:[.933,1.06],city:[1.101,1.20],cargo:[1.086,.91],scope:[.7,1.48]
-};
 const objectArt={
   old_wall:'shutter',canal_light:'window-bench','experiment-notes':'desk','mount-notebook':'plan',
   'route-chart':'plan','bell-record':'scope','workshop-record':'mount',research:'desk',comparison:'plan',
@@ -24,19 +22,24 @@ function shadowTexture(){
   ctx.fillStyle=grad;ctx.fillRect(0,0,96,96);return new T.CanvasTexture(c);
 }
 export function buildLayout(sc,ch,passageOpen=false){
+  if(sc.episode===4)return workshopLayout(sc);
   const plan=floorPlan(sc,passageOpen);
   plan.Interior=class {
+    dispose(){disposeInterior(this);}
     constructor(canvas){
       this.renderer=new T.WebGLRenderer({canvas,antialias:true,powerPreference:'low-power'});
       this.renderer.setPixelRatio(Math.min(devicePixelRatio,1.6));this.scene=new T.Scene();this.scene.background=new T.Color(0x393730);
-      this.camera=new T.PerspectiveCamera(55,1,.035,75);this.tokens={};this.props=[];
+      this.camera=new T.PerspectiveCamera(55,1,.035,75);this.tokens={};this.stationMeshes=[];
       const loader=new T.TextureLoader(),cache=new Map();
       const texture=name=>{
         if(!cache.has(name)){const t=loader.load(new URL(name+'.webp',assets).href);t.colorSpace=T.SRGBColorSpace;cache.set(name,t);}
         return cache.get(name);
       };
+      this.scene.add(new T.HemisphereLight(0xffefd8,0x817560,1.65));
+      const sun=new T.DirectionalLight(0xffdfb4,1.85);sun.position.set(3,7,-2);this.scene.add(sun);
+      const place=furnishRoom(texture);
       const sky=texture(ch.world);sky.wrapS=T.RepeatWrapping;sky.repeat.x=-1;
-      const shell=new T.Mesh(new T.SphereGeometry(22,64,32),new T.MeshBasicMaterial({map:sky,side:T.BackSide}));
+      const shell=new T.Mesh(new T.SphereGeometry(28,64,32),new T.MeshBasicMaterial({map:sky,side:T.BackSide}));
       shell.position.set(4.5,1.58,4);this.scene.add(shell);
       const alpha=shadowTexture();
       const floor=new T.Mesh(new T.PlaneGeometry(17,16),new T.MeshBasicMaterial({map:texture('floor-'+ch.world),alphaMap:alpha,transparent:true,depthWrite:false}));
@@ -47,18 +50,13 @@ export function buildLayout(sc,ch,passageOpen=false){
         const oval=new T.Mesh(flat,shade);oval.rotation.x=-Math.PI/2;oval.position.set(x,.004,z);
         oval.scale.set(width*1.22,width*.76,1);oval.renderOrder=-1;this.scene.add(oval);
       };
-      const picture=(file,x,z,height,aspect)=>{
-        const mat=new T.MeshBasicMaterial({map:texture(file),transparent:true,alphaTest:.13,side:T.DoubleSide});
-        const mesh=new T.Mesh(flat,mat);mesh.scale.set(aspect*height,height,1);mesh.position.set(x,height/2,z);
-        this.props.push(mesh);this.scene.add(mesh);return mesh;
-      };
       for(const [id,s] of Object.entries(plan.furnishings)){
         const [x,,z]=s.point;
         if(sc.episode===12&&id==='wall'){
           // This section belongs to the west wall. Keep its bearing and stone scale
           // fixed, with real depth behind the opening as the player steps inside.
           const width=4.65,height=2.72,root=new T.Group();
-          root.rotation.y=Math.PI/2;root.position.set(x,0,z);this.scene.add(root);
+          root.rotation.y=Math.PI/2;root.position.set(x,0,z);this.scene.add(root);root.userData.station=passageOpen?'passage':id;this.stationMeshes.push(root);
           const wall=texture(passageOpen?'open-passage':'evidence-12');
           const panel=(u0,v0,u1,v1,depth,map=wall)=>{
             const geom=new T.PlaneGeometry(width*(u1-u0),height*(v1-v0));
@@ -78,25 +76,22 @@ export function buildLayout(sc,ch,passageOpen=false){
           continue;
         }
         const mobile=movable[sc.episode]?.includes(id);
-        const art=mobile?'plinth':objectArt[id]||kindArt[s.type], [aspect,height]=sizes[art];
-        shadow(x,z,aspect*height);picture('prop-'+art,x,z,height,aspect);
-        if(art==='plinth'){const piece=picture('prop-specimen',x,z,height,aspect);piece.renderOrder=1;this.tokens[id]=piece;}
+        const art=mobile?'plinth':objectArt[id]||kindArt[s.type];
+        const {root,token}=place(art);
+        root.name='station-'+id;
+        root.position.set(x,0,z);
+        root.rotation.y=Math.atan2(s.approach[0]-x,s.approach[1]-z);
+        const extent=new T.Box3().setFromObject(root);
+        s.point[1]=extent.max.y*.85;
+        root.userData.station=id;this.stationMeshes.push(root);
+        this.scene.add(root);shadow(x,z,.82);
+        if(token)this.tokens[id]=token;
       }
       for(const {name,x,z} of plan.people){
-        shadow(x,z,.55);picture('person-'+name,x,z,1.67,personAspect[name]);
+        const person=figure(name,texture('person-'+name),personAspect[name]);
+        person.position.set(x,0,z);person.rotation.y=Math.atan2(4.5-x,4-z);
+        shadow(x,z,.55);this.scene.add(person);
       }
-    }
-    dispose(){
-      const geometry=new Set(),materials=new Set(),maps=new Set();
-      this.scene.traverse(mesh=>{if(mesh.geometry)geometry.add(mesh.geometry);if(mesh.material)materials.add(mesh.material);});
-      for(const mat of materials){for(const map of [mat.map,mat.alphaMap])if(map)maps.add(map);mat.dispose();}
-      for(const geom of geometry)geom.dispose();for(const map of maps)map.dispose();
-      this.renderer.dispose();this.renderer.forceContextLoss();
-    }
-    update(){
-      const {x,z}=this.camera.position;if(x===this.px&&z===this.pz)return;
-      this.px=x;this.pz=z;
-      for(const mesh of this.props)mesh.rotation.y=Math.atan2(x-mesh.position.x,z-mesh.position.z);
     }
     setState(visible){for(const [id,value] of Object.entries(visible))if(this.tokens[id])this.tokens[id].visible=value;}
   };

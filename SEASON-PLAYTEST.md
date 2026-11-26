@@ -5,7 +5,7 @@ Season One runs from the temple ceremony to the answering harbor. For a fresh pl
 | Episode | Story contribution | Player experience to preserve or test |
 | --- | --- | --- |
 | 1 · City of Light and Sound | The ceremony fails in public. | Let players see the temple mark clearly enough to recognize it later. Time how long it takes to reach the first meaningful action. |
-| 2 · The Warning | The grading rules threaten Kaelan’s family. | Reproduce the temple pulse with the condemned stone. The approved specimen is an optional control. |
+| 2 · The Warning | The grading rules threaten Kaelan’s family. | Compare the two shipment samples under the same light and decide which to save for Father. |
 | 3 · Night’s Secrets | Condemned cargo carries the mystery beyond the shop. | Compare two views of the barge reflection. Check whether the branching relationship is readable when the water changes. |
 | 4 · Hidden Patterns | The workshop hides older markings and guards approach. | Let players expose the wall and protect the drawings. Keep those two actions close together. |
 | 5 · Hidden Records | Altered grading standards emerge in the archive. | Show price and rejection records together. Check whether players can explain why the numbers challenge the scarcity story. |

@@ -56,6 +56,7 @@ function journal(){
 }
 function updateProps(){
   const s=story(p);let visible={};
+  if(p.episode===4)visible={wallSeen:s.flags.wall_revealed,wallLit:s.flags.canal_light};
   if(p.episode===6)visible={mounting:p.mount==='isolated',channel:p.mount==='coupled'};
   if(p.episode===9)visible={'specimen-setup':s.apparatus==='bench','marked-wall':s.apparatus==='wall','water-channel':s.apparatus==='channel'};
   if(p.episode===12)visible={array:s.placement==='none',center:s.placement==='center',east:s.placement==='east',west:s.placement==='west'};

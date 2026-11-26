@@ -1,5 +1,23 @@
 import * as T from './vendor/three.module.js';
+export function disposeInterior(room){
+  const geometries=new Set(),materials=new Set(),textures=new Set();
+  room.scene.traverse(object=>{
+    if(object.geometry)geometries.add(object.geometry);
+    if(object.material)for(const m of [].concat(object.material))materials.add(m);
+    if(object.isInstancedMesh)object.dispose();
+    if(object.shadow)object.shadow.dispose();
+  });
+  for(const mat of materials){
+    for(const value of Object.values(mat))if(value?.isTexture)textures.add(value);
+    mat.dispose();
+  }
+  if(room.scene.environment)textures.add(room.scene.environment);
+  for(const geometry of geometries)geometry.dispose();
+  for(const texture of textures)texture.dispose();
+  room.renderer.dispose();room.renderer.forceContextLoss();
+}
 export class RoomRenderer {
+ dispose(){disposeInterior(this);}
  constructor(canvas){
   this.canvas=canvas;
   this.renderer=new T.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});

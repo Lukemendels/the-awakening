@@ -35,6 +35,16 @@ export class ShopView {
 
       const rect=canvas.getBoundingClientRect();
       this.ray.setFromCamera({x:2*(e.clientX-rect.left)/rect.width-1,y:1-2*(e.clientY-rect.top)/rect.height},this.room.camera);
+      if(this.room.stationMeshes){
+        const hits=this.ray.intersectObjects(this.room.stationMeshes,true);
+        for(const hit of hits){
+          let obj=hit.object;
+          while(obj&&!obj.userData.station&&obj.visible)obj=obj.parent;
+          const id=obj?.visible&&obj.userData.station;
+          if(id&&layout.stations[id]){this.go(layout.stations[id].approach,id);return;}
+        }
+        return;
+      }
       // Pin buttons and taps on the physical props select the same approach.
       const hitProp=Object.entries(layout.stations).map(([id,s])=>{
         const center=new T.Vector3(...s.point);center.y-=.23;

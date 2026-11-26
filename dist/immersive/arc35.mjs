@@ -59,7 +59,7 @@ export function arc35Act(previous,action){
  if(action.type!=='interact'||!sc.objects.some(o=>o.id===action.id&&o.choices.some(c=>c.id===action.choice)))return {state:s,message:'',changed:false,complete:finish()};
  const {id,choice}=action;
  if(s.episode===3){
-  if(id==='near_view'||id==='far_view'){changed=add(s,id);message=id==='near_view'?'From the steps the barge’s glow ripples across the water in a branching geometry.':'From the overlook the reflection shifts with the viewpoint, but its branching relationship persists.';}
+  if(id==='near_view'||id==='far_view'){changed=add(s,id);message=id==='near_view'?'From the steps, two streaks meet in the barge’s reflection. A pulse crosses the water, just as it crossed the brass inlay.':'From the overlook the reflection shifts with the viewpoint, but its branching relationship persists.';}
   if(id==='chart'){changed=add(s,'chart');message='The archive sketch records the same branching relation in the temple’s arrangement.';}
   if(id==='reflection'){if(!(f.near_view&&f.far_view&&f.chart))message='The moving reflection is hard to judge from one place. Gather another view and compare the sketch.';else if(choice==='corresponds'){changed=add(s,'ep3_relation','The barge reflections preserve the temple geometry despite a change of viewpoint.');message='The geometry corresponds across both views. Condemned cargo, water and temple appear connected.';}else message='That interpretation does not account for the relation remaining visible after the view changes. Look again; no evidence is lost.';}
  }

@@ -168,7 +168,7 @@ function enter(fromGesture=true){
 }
 const ending=[
   {speaker:'Survey board · Finding recorded',title:'The tracings match',line:'“Even the tiny nick lines up. The water shifted between the two drawings, but the light beneath the cargo kept its shape. I saw that fork in the rejected crystal at my bench.”'},
-  {speaker:'Before dawn · Kaelan’s workshop',title:'A test at the canal window',line:'“The merchant house is throwing away crystals that still respond to light. If I hold mine at the workshop window, will it pulse in time with the canal?”'}
+  {speaker:'Outer-ring gate · Last barge',title:'The light leaves with the cargo',line:'The stern slips through the gate. The fork vanishes. Kaelan looks down at his sliver. He can’t bring a barge home, but the same canal runs under Father’s window. He folds both tracings into his coat.'}
 ];
 function continueStory(){
   if(leaving)return;

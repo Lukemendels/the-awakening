@@ -1,3 +1,5 @@
+import {earlyScenes} from '../early-scenes.mjs';
+import {showStoryFilm} from '../story-film.mjs';
 import {loadSave,writeSave,freshSave,journeyUrl} from '../save.mjs';
 import {ShopView} from '../shop/view.mjs';
 import {ImmersiveAudio} from '../audio.mjs';
@@ -49,7 +51,8 @@ function journal(){
   if(p.episode===6||p.episode===7)notes.push(...view67(p.story67).evidence.map(e=>e.text));
   if(notes.length){const list=node('ul');for(const line of new Set(notes))list.append(node('li',line));c.append(list);}
   if(p.episode>4){const d=node('details');d.append(node('summary','Earlier findings'));findings(d,p.episode-1);c.append(d);}
-  transcript(c,'At the start of this episode',sc.intro);
+  const opening=earlyScenes[arrivals[p.episode]];
+  transcript(c,'At the start of this episode',opening?opening.map(shot=>shot.line):sc.intro);
   const options=node('div','','actions');const narr=button(save.narration?'Voice on':'Voice off',()=>{save.narration=!save.narration;persist();journal();if(save.narration)speak(prompt);else stopVoice();});
   if('speechSynthesis' in window)options.append(narr);
   options.append(button('Return to title',()=>{rememberPose();persist();location.href=journeyUrl('../index.html');}));c.append(options);
@@ -77,7 +80,13 @@ function dispatch(action){
   if(result.changed&&action.type==='interact'&&result.message&&!visit.notes.includes(result.message))visit.notes.push(result.message);
   if(p.episode===22&&id==='evidence-table'&&result.changed)visit.evidence=action.choice;
   if(result.changed)audio.cue(({record:'paper',water:'glass',optics:'bell',cargo:'wood'})[layout.stations[id].type]||'glass',layout.stations[id].point[0],layout.stations[id].point[2]);
-  updateProps();persist();
+  updateProps();
+  if(result.changed&&action.type==='interact'){
+    const event=p.episode===4&&id==='old_wall'&&action.choice==='expose'?'patrol':
+      p.episode===5&&id==='keeper'&&action.choice==='speak'?'key':null;
+    if(event){visit.active=null;closePanel();roomFilm(event);return;}
+  }
+  persist();
   const witness=[11,17,21].includes(p.episode);
   if(action.type==='interact'&&block.solved(p)&&(!witness||id==='continue'&&action.choice==='continue')){reveal();return;}
   openStation(id,result.message);
@@ -176,6 +185,19 @@ function nextEpisode(){
   init();
   if(crossed)say('Behind you, a strip of warehouse light falls across the threshold.');
 }
+const arrivals={4:'night',5:'archive',6:'mira',7:'kai'};
+function roomFilm(id){
+  view?.pause();
+  showStoryFilm(id,visit.film?.index,(index,shot)=>{
+    visit.film={id,index};persist();stopBeat();audio.setRoomLevel(.13);
+    if(shot.cue)audio.cue(shot.cue);
+    speak(shot.line);
+  },()=>{
+    delete visit.film;stopBeat();audio.setRoomLevel(.23);
+    if(p.phase==='intro')enter();
+    else persist();
+  });
+}
 function enter(passageOpen=false){
   if(p.phase==='intro'){p.phase='room';p.clip=0;}
   screen('room');$('mode').textContent=sc.place;$('world').setAttribute('aria-label','First-person view of '+sc.place);
@@ -191,7 +213,8 @@ function enter(passageOpen=false){
   if(passageOpen){say('The passage is open.');persist();return;}
   for(const o of sc.objects){const type=layout.stations[o.id].type;if(['water','optics','cargo'].includes(type))audio.setEmitter(({water:'water',optics:'array',cargo:'wood'})[type],o.x,o.y);}
   persist();if(block.solved(p)&&![11,17,21].includes(p.episode)){reveal();return;}
-  if(visit.active)openStation(visit.active);
+  if((p.episode===4&&visit.film?.id==='patrol')||(p.episode===5&&visit.film?.id==='key'))roomFilm(visit.film.id);
+  else if(visit.active)openStation(visit.active);
 }
 function end(){
   $('back-beat').hidden=true;
@@ -212,6 +235,7 @@ function init(){
   audio.setScene('ep'+p.episode);audio.setRoomLevel(.23);audio.setVolume(Number.isFinite(save.soundVolume)?save.soundVolume:.7);
   if(p.phase==='outro'){if(p.episode===12&&visit.passageOpen)enter(true);else reveal();return;}
   if(p.phase==='room'){enter();return;}
+  if(arrivals[p.episode]){roomFilm(arrivals[p.episode]);return;}
   screen('arrival');$('chapter-number').textContent='Episode '+p.episode+' · '+sc.place;$('title').textContent=sc.title;
   $('premise').textContent=ch.opening;$('question').textContent=ch.question;
   $('enter').textContent='Explore '+sc.place;$('enter').onclick=()=>{enter();speak(ch.question);};

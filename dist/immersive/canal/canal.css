@@ -47,3 +47,8 @@
 }
 
 #sequence button{touch-action:manipulation}
+
+#sequence[data-beat="workshop"]{height:100vh;height:100dvh;display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr)}
+#sequence[data-beat="workshop"] #shot-art{position:static;background-size:contain;background-repeat:no-repeat;animation:none}
+#sequence[data-beat="workshop"] #film-copy{position:static;align-self:center;max-height:100%;overflow:auto;padding:1.2rem max(1rem,env(safe-area-inset-right)) max(1rem,env(safe-area-inset-bottom));background:none}
+@media(orientation:portrait){#sequence[data-beat="workshop"]{grid-template-columns:1fr;grid-template-rows:44% minmax(0,1fr)}}

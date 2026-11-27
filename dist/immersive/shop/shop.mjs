@@ -1,3 +1,4 @@
+import {showStoryFilm} from '../story-film.mjs';
 import {ShopView} from './view.mjs';
 import {freightStations as stations,loadingLayout} from './freight.mjs';
 import {fresh,restore,hasStone,assignment,sketchNote,packets,manifest,ticket,marks,profile,sweep,holdCrate} from './investigation.mjs';
@@ -22,10 +23,11 @@ const audio=new ImmersiveAudio();
 audio.setEmitter('water',7.85,3.4);
 let soundWanted=journey.shopSound??true;
 let voice=Boolean(journey.narration),view,film,pulseFrame,ticketArmed=false;
+let storyFilm=journey.shopOpening?.storyFilm;
 function save(){
   const current=loadSave(storage);
   if(view)state.pose=view.pose();
-  current.shopOpening=state;current.shopSound=soundWanted;current.sound=soundWanted;current.narration=voice;
+  current.shopOpening={...state,storyFilm};current.shopSound=soundWanted;current.sound=soundWanted;current.narration=voice;
   if(!current.arc&&!current.nextArc&&!current.finalArc)current.scene='room';
   $('storage-error').hidden=writeSave(storage,current);
 }
@@ -34,6 +36,19 @@ function button(text,action,group=content){
 }
 function paragraph(text,group=content,cls=''){
   const p=document.createElement('p');p.textContent=text;p.className=cls;group.append(p);return p;
+}
+function shopScene(id){
+  view?.pause();
+  $('arrival').hidden=true;
+  showStoryFilm(id,storyFilm?.index,(index,shot)=>{
+    storyFilm={id,index};save();stopVoice();audio.stopCues();
+    if(shot.cue)audio.cue(shot.cue);
+    speak(shot.line);
+  },()=>{
+    storyFilm=null;stopVoice();audio.stopCues();
+    if(id==='hold'){view?.stop();dock();}
+    else{state.active='bench';begin();}
+  });
 }
 function begin(){
   loadBenchArt();
@@ -59,8 +74,9 @@ function updateTicket(){
 function claim(crate){
   const result=holdCrate(state,crate);ticketArmed=false;
   if(result==='held'){
-    state.inRoomHold=true;state.carrying=false;audio.cue('wood');
-    if(dialog.open)dialog.close();showHold();audio.cue('knock',7.79,3.51);speak($('guide').textContent);return;
+    state.inRoomHold=false;state.carrying=false;view?.room.hold?.(state.held);
+    if(dialog.open)dialog.close();
+    shopScene('hold');return;
   }
   const reasons={missing:'“The tracing ends early.” Father hands the ticket back. Try the full turn at the bench.',
     path:'Father puts your tracing over the sketch. The tracks split around the broken rivet. He hands the ticket back.',
@@ -252,7 +268,7 @@ function dock(){
   state.phase='dock';state.active=null;save();
   $('sequence').hidden=false;$('sequence').dataset.shot='dock';$('shot-art').style.backgroundImage=shotImage('disposal-barge');
   $('shot-table').hidden=true;$('speaker').textContent='Outer-ring dock · Nightfall';
-  $('line').textContent=state.held?'The inspector calls back, “Premium grade next time.” Father pulls the red cord tight on crate '+state.held+'. Beneath the departing barge, two threads of light bend in the dark.': 'The collector takes the remaining cargo down to the quay. Two pale threads gleam beneath the departing barge.';
+  $('line').textContent=state.held?'From the window you can still see crate '+state.held+' inside the shop. The others are already on the water. Beneath the barge, two threads bend together. Could the other cargo cast the same light?': 'The collector takes the remaining cargo down to the quay. Two pale threads gleam beneath the departing barge.';
   $('room').hidden=true;
   $('revisit').textContent=state.held?'Stay with Father':'Revisit the shop';
   $('dock-action').hidden=false;$('revisit').hidden=false;$('dock-action').focus({preventScroll:true});
@@ -265,6 +281,7 @@ $('dock-action').onclick=()=>{location.assign(journeyUrl('../canal/index.html#fr
 $('next-shot').onclick=()=>{if(film)film.next();};
 document.addEventListener('visibilitychange',()=>{
   audio.setHidden(document.hidden);
+  if(storyFilm&&document.hidden)stopVoice();
   if(!film)return;
   if(document.hidden){film.pause();window.speechSynthesis?.pause();}
   else{film.play();window.speechSynthesis?.resume();}
@@ -282,7 +299,7 @@ async function unlockSound(){
 // Returning players can resume directly in the room. Unlock on their first
 // interaction just as entering the shop unlocks sound for a new player.
 for(const event of ['pointerup','keydown'])document.addEventListener(event,e=>{
-  if(e.target!==soundButton && e.target!==$('enter'))unlockSound();
+  if(e.target!==soundButton)unlockSound();
 },true);
 soundLabel();
 soundButton.onclick=async()=>{
@@ -316,6 +333,6 @@ hand.onpointerup=hand.onpointercancel=hand.onlostpointercapture=releaseTicket;
 for(const [id,s] of Object.entries(stations))button(s.label,()=>view?view.go(s.approach,id):inspect(id),$('destinations'));
 $('close').onclick=close;dialog.addEventListener('cancel',e=>{e.preventDefault();close();});
 $('journal').onclick=()=>inspect('journal');
-$('enter').disabled=false;$('enter').onclick=()=>{unlockSound();begin();};
-if(state.phase!=='shop'||journey.shopOpening?.phase==='shop')begin();
-else $('memory').append(illustration(state,'sketch'));
+if(state.phase==='film'&&state.held&&!state.inRoomHold)shopScene('hold');
+else if(state.phase==='shop'&&(storyFilm?.id==='collection'||!journey.shopOpening||(!state.tray&&!state.sketch&&!state.active)))shopScene('collection');
+else begin();

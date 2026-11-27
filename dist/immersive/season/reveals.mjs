@@ -4,6 +4,21 @@ const art=name=>new URL('../../assets/generated/season/'+name+'.webp',import.met
 export function sequence(ep,ch,meaning){
   const finding={title:ch.finding,line:meaning,lead:ch.lead,next:ch.next,art:ch.plate};
   switch(ep){
+    case 4:return [
+      {speaker:'Outside the shop',title:'The light goes out',line:'The cloth settles over the stone. The bright fork disappears from the wall. Under the door, a pair of boots cuts the strip of lantern light in two.',next:'Wait with Father',art:art('patrol-door'),cue:'wood'},
+      {speaker:'Father',title:'The next door down',line:'The boots move on. A fist strikes the next door. Only then does Father lift the cloth. “They passed us. Keep my slip, Kaelan. The guild wrote that grade on it. Find out when.”',next:'Take Father’s slip to the archive',art:new URL('../../assets/generated/crystalshop-opening-v1.webp',import.meta.url).href}
+    ];
+    case 5:return [
+      {speaker:'Kaelan',title:'A change in the rules',line:'Kaelan copies two entries beside Father’s slip. Three times the price for approved quartz. Ten times the volume condemned. Under the ink he can make out the old grading rule beneath the new one.',next:'Return the keeper’s key',art:ch.plate,cue:'paper'},
+      {speaker:'Archive keeper',title:'Where the rejected stones went',line:'The keeper pockets the key. “I can show you what they wrote. If you want to know what they threw away, go where they mount the stones.” She opens the side door onto the merchants’ quarter.',next:'Step into the merchants’ quarter',art:art('archive-key')}
+    ];
+    case 6:return [
+      {speaker:'Mira',title:'The water made the difference',line:'Mira lifts the mount clear of the trough. The lines fade. She lowers it again and they sharpen. “Same jaws. Same stone. All we moved was my hand.” She asks Kaelan to mark the interval while she holds it steady.',next:'Listen at the workshop door',art:ch.plate,cue:'crystal-pulse'}
+    ];
+    case 7:return [
+      {speaker:'Kai',title:'One rhythm in two places',line:'Kai rests a finger on the tower record. Kaelan finds the same pair of beats in Mira’s. On the night of the alignment the marks run deeper. Kai folds the sheets together. “I thought the fault was in my instrument.”',next:'Hear the loading bell',art:ch.plate,cue:'bell'},
+      {speaker:'Kaelan',title:'The next load is leaving',line:'A barge bell sounds through the shutters. “Father could only hold one crate,” Kaelan says. Mira wraps the mounting while Kai takes the records. This time, all three of them go down to the water.',next:ch.next,art:new URL('../../assets/generated/disposal-barge.webp',import.meta.url).href}
+    ];
     case 12:return [
       {title:'One cut in the stone',line:'The nick in the projected fork sits inside the carved nick. Both lines run on beneath the mortar.',next:'Follow the light along the seam',art:ch.plate,effect:'match',cue:'crystal-pulse'},
       {title:'The old wall opens',line:'A slab drags across the floor. Cool air touches Kaelan’s face. Behind the stone, water runs down a flight of steps.',next:'Walk to the open passage',art:art('open-passage'),effect:'seam',cue:'stone-scrape'}

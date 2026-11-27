@@ -1,7 +1,7 @@
 /** V2 is deliberately separate from the original awakening-v4 save. */
 export const SAVE_KEY='awakening-immersive-opening-v1';
 const requestedRun=new URLSearchParams(globalThis.location?.search||'').get('run');
-const runKeys={'season-one':'season-one-review',workshop:'workshop-investigation','lot-vii':'lot-vii-inquiry','smoked-brass':'smoked-brass'};
+const runKeys={'season-one':'season-one-review',workshop:'workshop-investigation','lot-vii':'lot-vii-inquiry','smoked-brass':'smoked-brass','first-light':'first-light'};
 export const playtestRun=Object.hasOwn(runKeys,requestedRun);
 const activeKey=playtestRun?SAVE_KEY+'-'+runKeys[requestedRun]:SAVE_KEY;
 export function journeyUrl(path){

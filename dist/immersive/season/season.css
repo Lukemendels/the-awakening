@@ -83,3 +83,6 @@
 .answered-water{position:absolute;left:65%;top:50%;width:6%;height:24%;background:radial-gradient(ellipse,#edc17d80,transparent 70%);animation:answer-light 1.5s 1.2s both}
 @keyframes shore-wakes{to{opacity:0}}
 @media(prefers-reduced-motion:reduce){.quiet-shore{display:none}.answered-water{animation:none}}
+
+/* Keep faces and evidence inside the picture area on short browser viewports. */
+#shot-art[data-effect=""] .film-frame>img{object-fit:contain}

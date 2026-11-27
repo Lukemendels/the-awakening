@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {access} from 'node:fs/promises';
 import {chapter} from '../dist/immersive/season/chapters.mjs';
+import {earlyScenes} from '../dist/immersive/early-scenes.mjs';
 import {sequence} from '../dist/immersive/season/reveals.mjs';
 import {arc1113Scenes} from '../dist/immersive/arc1113.mjs';
 import {floorPlan} from '../dist/immersive/season/layout.mjs';
@@ -13,6 +14,12 @@ test('every finding has usable shots, captions, and an intentional handoff',asyn
     for(const beat of beats){
       await access(new URL(beat.art));
       assert.ok(beat.title&&beat.line&&beat.next);
+    }
+  }
+  for(const shots of Object.values(earlyScenes)){
+    for(const shot of shots){
+      await access(new URL(shot.art));
+      assert.ok(shot.place&&shot.title&&shot.line&&shot.next);
     }
   }
   const scene=ep=>sequence(ep,chapter(ep),chapter(ep).meaning);

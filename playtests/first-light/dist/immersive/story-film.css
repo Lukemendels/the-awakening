@@ -16,3 +16,14 @@ dialog.story-film[open] {
 .story-copy .story-back{min-width:44px;font-size:1.45rem}
 @media(orientation:portrait){dialog.story-film[open]{grid-template-columns:1fr;grid-template-rows:minmax(0,45%) minmax(0,1fr)}.story-copy{padding-left:max(1.1rem,env(safe-area-inset-left))}}
 @media(orientation:landscape) and (max-height:400px){.story-copy{gap:.35rem;padding-block:max(.45rem,env(safe-area-inset-top)) max(.45rem,env(safe-area-inset-bottom))}.story-caption .story-line{font-size:1rem}}
+.story-caption h2:focus{outline:none}
+@media(orientation:landscape) and (max-height:400px){
+  dialog.story-film[open]{grid-template-columns:minmax(0,1.12fr) minmax(0,1fr)}
+  .story-copy{padding-inline: max(.85rem,env(safe-area-inset-left)) max(.85rem,env(safe-area-inset-right))}
+  .story-caption h2{font-size:1.5rem;margin:.2em 0}
+  .story-caption .story-line{line-height:1.28;margin:.3em 0}
+}
+@media(orientation:portrait) and (max-height:650px){
+  dialog.story-film[open]{grid-template-rows:minmax(0,39%) minmax(0,1fr)}
+  .story-copy{gap:.5rem}
+}

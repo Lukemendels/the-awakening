@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#11272a"><title>The Awakening · An illustrated serial</title>
+<link rel="icon" href="../immersive/awakening-icon.png"><link rel="stylesheet" href="reader.css">
+</head>
+<body>
+<main>
+<section id="cover">
+  <div class="cover-copy"><p class="eyebrow">Season One · An illustrated serial</p>
+    <h1>The<br>Awakening</h1>
+    <p class="deck">A merchant’s son sees a flaw in the crystal at the heart of Atlantis. By nightfall, he’ll wish he’d kept it to himself.</p>
+    <div class="cover-actions"><button id="start" class="light">Read with sound</button><button id="silent">Read silently</button></div>
+    <button id="resume" hidden></button><p class="byline">A story by Luke Mendelsohn</p>
+  </div>
+</section>
+<section id="reader" hidden aria-label="Illustrated story">
+  <header><span class="mast">The Awakening</span><nav aria-label="Reader settings"><button id="contents">Chapters</button><button id="audio" aria-pressed="false">Sound off</button></nav></header>
+  <article id="spread">
+    <button id="picture" aria-label="Next panel"><img id="plate" alt=""></button>
+    <div class="folio">
+      <div id="words" tabindex="-1"><p class="eyebrow" id="episode"></p><h2 id="chapter"></h2><div class="rule"></div><p id="caption"></p><figure id="speech" hidden><figcaption id="speaker"></figcaption><blockquote id="line"></blockquote></figure></div>
+      <footer><div class="folio-number"><span id="panel-number"></span><button id="copy">Copy panel link</button></div>
+        <nav aria-label="Turn the page"><button id="back" aria-label="Previous panel">‹</button><button id="next">Next panel ›</button></nav>
+      </footer>
+    </div>
+  </article>
+</section>
+<section id="ending" hidden><div class="cover-copy"><p class="eyebrow">The Awakening · Season One</p><h1>The End</h1><p class="deck">A story by Luke Mendelsohn</p><div class="cover-actions"><button id="reread" class="light">Return to the cover</button><button id="last">Read the final panel</button></div></div></section>
+<dialog id="library" aria-labelledby="contents-title"><div class="dialog-head"><h2 id="contents-title">Chapters</h2><button id="close">Close</button></div><ol id="list"></ol><button id="home">Return to cover</button></dialog>
+<p id="status" role="status" aria-live="polite"></p>
+<noscript>This illustrated edition needs JavaScript to turn the pages.</noscript>
+</main><script type="module" src="reader.mjs"></script>
+</body></html>

@@ -2,6 +2,8 @@
 
 A story-led, first-person browser game set in Atlantis. Play the complete Season One immersive story in landscape orientation. The earlier, non-immersive version remains available via the link in the game.
 
+[Read the illustrated edition from the first ceremony](dist/novel/index.html#cover). All 24 chapters advance panel by panel. Sound is optional, and each panel has a link for playtest notes.
+
 ## Run locally
 
 Serve this directory over HTTP (JavaScript modules generally cannot be opened reliably as a `file://` page):

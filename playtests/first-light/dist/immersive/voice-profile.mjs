@@ -1,0 +1,1 @@
+export const openingRecording=null;
